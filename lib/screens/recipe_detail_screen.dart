@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
 import '../models/recipe.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 class RecipeDetailScreen extends StatelessWidget {
   final Recipe recipe;
@@ -10,13 +12,24 @@ class RecipeDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text(recipe.title),
-        backgroundColor: Colors.black,
+        leading: IconButton(
+          icon: CircleAvatar(
+            backgroundColor: Colors.black,
+            child: Icon(Icons.arrow_back_ios_new, color: Colors.white),
+          ),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         foregroundColor: Colors.white,
         actions: [
           IconButton(
-            icon: const Icon(Icons.share),
+            icon: CircleAvatar(
+              backgroundColor: Colors.black,
+              child: const Icon(color: Colors.white, Icons.share, size: 20),
+            ),
             onPressed: () => _shareRecipe(context),
           ),
         ],
@@ -32,7 +45,7 @@ class RecipeDetailScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildTitleSection(),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 18),
                   if (recipe.description != null) ...[
                     _buildDescriptionSection(),
                     const SizedBox(height: 16),
@@ -41,7 +54,7 @@ class RecipeDetailScreen extends StatelessWidget {
                   const SizedBox(height: 24),
                   _buildStepsSection(),
                   const SizedBox(height: 16),
-                  _buildMetadataSection(),
+                  _buildMacronutrients(),
                 ],
               ),
             ),
@@ -90,12 +103,9 @@ class RecipeDetailScreen extends StatelessWidget {
       children: [
         Text(
           recipe.title,
-          style: const TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         Row(
           children: [
             if (recipe.isImported) ...[
@@ -115,11 +125,22 @@ class RecipeDetailScreen extends StatelessWidget {
                 style: TextStyle(color: Colors.green, fontSize: 12),
               ),
             ] else ...[
-              const Icon(Icons.lock, size: 16, color: Colors.grey),
+              SvgPicture.asset(
+                width: 30,
+                height: 30,
+                'assets/instagram_icon.svg',
+                colorFilter: ColorFilter.mode(Colors.grey, BlendMode.srcIn),
+                semanticsLabel: 'Label',
+              ),
               const SizedBox(width: 4),
               const Text(
-                'Privada',
-                style: TextStyle(color: Colors.grey, fontSize: 12),
+                // '@${recipe.author}',
+                '@juan_el_recetas',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ],
@@ -137,10 +158,7 @@ class RecipeDetailScreen extends StatelessWidget {
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
-        Text(
-          recipe.description!,
-          style: const TextStyle(fontSize: 16),
-        ),
+        Text(recipe.description!, style: const TextStyle(fontSize: 16)),
       ],
     );
   }
@@ -149,9 +167,15 @@ class RecipeDetailScreen extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Ingredientes (${recipe.ingredients.length})',
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        Row(
+          children: [
+            const Icon(Icons.shopping_cart, size: 24, color: Colors.black),
+            const SizedBox(width: 8),
+            Text(
+              'Ingredientes (${recipe.ingredients.length})',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ],
         ),
         const SizedBox(height: 8),
         ...recipe.ingredients.asMap().entries.map((entry) {
@@ -197,9 +221,19 @@ class RecipeDetailScreen extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Preparación (${recipe.steps.length} pasos)',
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        Row(
+          children: [
+            const Icon(
+              Icons.format_list_numbered_rounded,
+              size: 24,
+              color: Colors.black,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Preparación (${recipe.steps.length} pasos)',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ],
         ),
         const SizedBox(height: 8),
         ...recipe.steps.asMap().entries.map((entry) {
@@ -243,66 +277,207 @@ class RecipeDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMetadataSection() {
-    return Card(
-      color: Colors.grey[50],
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildMacronutrients() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
           children: [
-            const Text(
-              'Información',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            const Icon(Icons.pie_chart_rounded, size: 24, color: Colors.black),
+            const SizedBox(width: 8),
+            Text(
+              'Macronutrientes',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
-                const SizedBox(width: 8),
-                Text(
-                  'Creada: ${_formatDate(recipe.createdAt)}',
-                  style: const TextStyle(color: Colors.grey),
-                ),
-              ],
-            ),
-            if (recipe.originalVideoUrl != null) ...[
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  const Icon(Icons.video_library, size: 16, color: Colors.grey),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Video original: ',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                  Expanded(
-                    child: Text(
-                      recipe.originalVideoUrl!,
-                      style: const TextStyle(
-                        color: Colors.blue,
-                        decoration: TextDecoration.underline,
+          ],
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 150,
+          child: Row(
+            children: [
+              SizedBox(
+                width: 120,
+                height: 120,
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              '1234',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              'kcal',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      overflow: TextOverflow.ellipsis,
                     ),
+                    PieChart(
+                      PieChartData(
+                        centerSpaceColor: Colors.transparent,
+                        borderData: FlBorderData(show: false),
+                        sectionsSpace: 5,
+                        centerSpaceRadius: 35,
+                        startDegreeOffset: 180,
+                        sections: [
+                          PieChartSectionData(
+                            // value: recipe.macronutrients['carbs'] ?? 0,
+                            value: 12,
+                            color: const Color.fromARGB(255, 82, 225, 211),
+                            title: ' ',
+                            radius: 15,
+                          ),
+                          PieChartSectionData(
+                            // value: recipe.macronutrients['protein'] ?? 0,
+                            value: 8,
+                            color: const Color.fromARGB(255, 255, 168, 54),
+                            title: ' ',
+                            radius: 15,
+                          ),
+                          PieChartSectionData(
+                            // value: recipe.macronutrients['fat'] ?? 0,
+                            value: 10,
+                            color: const Color.fromARGB(255, 212, 98, 215),
+                            title: ' ',
+                            radius: 15,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildMacronutrientCard(
+                    color: const Color.fromARGB(255, 82, 225, 211),
+                    label: 'Carbs',
+                    value: '12g',
+                  ),
+                  _buildMacronutrientCard(
+                    color: const Color.fromARGB(255, 255, 168, 54),
+                    label: 'Protein',
+                    value: '8g',
+                  ),
+                  _buildMacronutrientCard(
+                    color: const Color.fromARGB(255, 212, 98, 215),
+                    label: 'Fat',
+                    value: '10g',
                   ),
                 ],
               ),
+              // Stack(
+              //   children: [
+              //     Positioned.fill(
+              //       child: Center(
+              //         child: Column(
+              //           mainAxisSize: MainAxisSize.min,
+              //           children: [
+              //             const Text(
+              //               '1234',
+              //               style: TextStyle(
+              //                 fontSize: 16,
+              //                 fontWeight: FontWeight.bold,
+              //               ),
+              //             ),
+              //             Text(
+              //               'kcal',
+              //               style: const TextStyle(
+              //                 fontSize: 14,
+              //                 color: Colors.grey,
+              //               ),
+              //             ),
+              //           ],
+              //         ),
+              //         // child: const Text(
+              //         //   '1240 Kcal',
+              //         //   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              //         // ),
+              //       ),
+              //     ),
+              //     PieChart(
+              //       PieChartData(
+              //         centerSpaceColor: Colors.transparent,
+              //         borderData: FlBorderData(show: false),
+              //         sectionsSpace: 5,
+              //         centerSpaceRadius: 35,
+              //         startDegreeOffset: 180,
+              //         sections: [
+              //           PieChartSectionData(
+              //             // value: recipe.macronutrients['carbs'] ?? 0,
+              //             value: 12,
+              //             color: const Color.fromARGB(255, 82, 225, 211),
+              //             title: ' ',
+              //             radius: 15,
+              //           ),
+              //           PieChartSectionData(
+              //             // value: recipe.macronutrients['protein'] ?? 0,
+              //             value: 8,
+              //             color: const Color.fromARGB(255, 255, 168, 54),
+              //             title: ' ',
+              //             radius: 15,
+              //           ),
+              //           PieChartSectionData(
+              //             // value: recipe.macronutrients['fat'] ?? 0,
+              //             value: 10,
+              //             color: const Color.fromARGB(255, 212, 98, 215),
+              //             title: ' ',
+              //             radius: 15,
+              //           ),
+              //         ],
+              //       ),
+              //     ),
+              //   ],
+              // ),
             ],
-          ],
+          ),
         ),
-      ),
+      ],
     );
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
   }
 
   void _shareRecipe(BuildContext context) {
     // TODO: Implementar compartir receta
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Función de compartir próximamente')),
+    );
+  }
+
+  _buildMacronutrientCard ({
+    required Color color,
+    required String label,
+    required String value,
+  }) {
+    return Card(
+      // color: color.withOpacity(0.1),
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: TextStyle(color: color, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
+            Text(value, style: TextStyle(color: Colors.black, fontSize: 16)),
+          ],
+        ),
+      ),
     );
   }
 }
