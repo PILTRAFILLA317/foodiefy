@@ -1,16 +1,27 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
 import '../models/collection.dart';
+import '../models/recipe.dart';
+import 'package:foodiefy/widgets/recipe_card.dart';
+import 'package:foodiefy/screens/recipe_detail_screen.dart';
 
 class CollectionDetailScreen extends StatelessWidget {
   final RecipeCollection recipeCollection;
 
-  const CollectionDetailScreen({super.key, required this.recipeCollection});
+  CollectionDetailScreen({super.key, required this.recipeCollection});
+
+  var testRecipe = Recipe(
+    id: '1',
+    title: 'Test Recipe',
+    imagePath: 'https://i.ytimg.com/vi/WcsQPkBPiDw/maxresdefault.jpg',
+    ingredients: ['Ingredient 1', 'Ingredient 2'],
+    steps: ['Step 1', 'Step 2'],
+    createdAt: DateTime.now(),
+  );
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text(
           recipeCollection.name,
@@ -20,7 +31,7 @@ class CollectionDetailScreen extends StatelessWidget {
           ),
         ),
         backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        surfaceTintColor: Colors.white,
         actions: [
           // IconButton(
           //   icon: const Icon(Icons.share),
@@ -32,6 +43,7 @@ class CollectionDetailScreen extends StatelessWidget {
           // ),
         ],
       ),
+      backgroundColor: Colors.white,
       body: Padding(
         padding: const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 16.0),
         child: Column(
@@ -59,44 +71,46 @@ class CollectionDetailScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Expanded(
-              child: GridView.builder(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  childAspectRatio: 0.75,
-                ),
-                itemCount: 10, // Replace with your collection count
-                itemBuilder: (context, index) {
-                  // return CollectionCard(
-                  //   collection: RecipeCollection(
-                  //     createdAt: DateTime.now(),
-                  //     updatedAt: DateTime.now(),
-                  //     id: 'collection_$index',
-                  //     name: 'Collection $index',
-                  //     recipeIds: List.generate(4, (i) => 'recipe_$i'),
-                  //   ),
-                  //   onTap: () {
-                  //     Navigator.push(
-                  //       context,
-                  //       MaterialPageRoute(
-                  //         builder: (context) => CollectionDetailScreen(
-                  //           recipeCollection: RecipeCollection(
-                  //             createdAt: DateTime.now(),
-                  //             updatedAt: DateTime.now(),
-                  //             id: 'collection_$index',
-                  //             name: 'Collection $index',
-                  //             recipeIds: List.generate(4, (i) => 'recipe_$i'),
-                  //           ),
-                  //         ),
-                  //       ),
-                  //     );
-                  //   },
-                  //   onDelete: () {
-                  //     print('Deleted Collection $index');
-                  //   },
-                  // );
-                },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // _buildStatsRow(),
+                  // const SizedBox(height: 16),
+                  Expanded(
+                    child: GridView.builder(
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            childAspectRatio: 0.75,
+                            crossAxisSpacing: 16,
+                            mainAxisSpacing: 16,
+                          ),
+                      // itemCount: recipes.length,
+                      itemCount: recipeCollection.recipeIds.length,
+                      itemBuilder: (context, index) {
+                        return RecipeCard(
+                          // recipe: recipes[index],
+                          recipe: testRecipe,
+                          // onTap: () => _openRecipeDetail(recipes[index]),
+                          onTap: () {
+                            // Implement recipe detail navigation
+                            // print(
+                            //   'Recipe tapped: ${recipeCollection.recipeIds[index]}',
+                            // );
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => RecipeDetailScreen(
+                                  recipe: testRecipe,
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

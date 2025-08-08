@@ -12,7 +12,7 @@ class RecipeDetailScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(recipe.title),
-        backgroundColor: Colors.orange,
+        backgroundColor: Colors.black,
         foregroundColor: Colors.white,
         actions: [
           IconButton(
@@ -99,11 +99,11 @@ class RecipeDetailScreen extends StatelessWidget {
         Row(
           children: [
             if (recipe.isImported) ...[
-              const Icon(Icons.link, size: 16, color: Colors.orange),
+              const Icon(Icons.link, size: 16, color: Colors.black),
               const SizedBox(width: 4),
               const Text(
                 'Importada',
-                style: TextStyle(color: Colors.orange, fontSize: 12),
+                style: TextStyle(color: Colors.black, fontSize: 12),
               ),
               const SizedBox(width: 16),
             ],
@@ -164,7 +164,7 @@ class RecipeDetailScreen extends StatelessWidget {
                   width: 24,
                   height: 24,
                   decoration: const BoxDecoration(
-                    color: Colors.orange,
+                    color: Colors.black,
                     shape: BoxShape.circle,
                   ),
                   child: Center(
@@ -214,7 +214,7 @@ class RecipeDetailScreen extends StatelessWidget {
                     width: 32,
                     height: 32,
                     decoration: const BoxDecoration(
-                      color: Colors.orange,
+                      color: Colors.black,
                       shape: BoxShape.circle,
                     ),
                     child: Center(
