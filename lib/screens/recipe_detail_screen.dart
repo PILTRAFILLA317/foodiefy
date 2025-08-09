@@ -4,6 +4,8 @@ import '../models/recipe.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fl_chart/fl_chart.dart';
 
+import 'package:foodiefy/screens/step_detail_screen.dart';
+
 class RecipeDetailScreen extends StatelessWidget {
   final Recipe recipe;
 
@@ -14,6 +16,8 @@ class RecipeDetailScreen extends StatelessWidget {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
+        // backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
         leading: IconButton(
           icon: CircleAvatar(
             backgroundColor: Colors.black,
@@ -34,6 +38,7 @@ class RecipeDetailScreen extends StatelessWidget {
           ),
         ],
       ),
+      backgroundColor: Colors.white,
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -52,7 +57,7 @@ class RecipeDetailScreen extends StatelessWidget {
                   ],
                   _buildIngredientsSection(),
                   const SizedBox(height: 24),
-                  _buildStepsSection(),
+                  _buildStepsSection(context),
                   const SizedBox(height: 16),
                   _buildMacronutrients(),
                 ],
@@ -217,7 +222,7 @@ class RecipeDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStepsSection() {
+  Widget _buildStepsSection(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -237,38 +242,57 @@ class RecipeDetailScreen extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         ...recipe.steps.asMap().entries.map((entry) {
-          return Card(
-            margin: const EdgeInsets.symmetric(vertical: 4),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: const BoxDecoration(
-                      color: Colors.black,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Text(
-                        '${entry.key + 1}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
+          final index = entry.key;
+          final step = entry.value;
+
+          return GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => StepDetailScreen(
+                    steps: recipe.steps,
+                    initialIndex: index,
+                  ),
+                ),
+              );
+            },
+            child: Card(
+              color: Colors.grey[200],
+              margin: const EdgeInsets.symmetric(vertical: 4),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: const BoxDecoration(
+                        color: Colors.black,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${index + 1}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Text(
-                      entry.value,
-                      style: const TextStyle(fontSize: 16),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Text(
+                        step,
+                        style: const TextStyle(fontSize: 16),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           );
@@ -291,9 +315,9 @@ class RecipeDetailScreen extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        // const SizedBox(height: 8),
         SizedBox(
-          height: 150,
+          height: 120,
           child: Row(
             children: [
               SizedBox(
@@ -457,26 +481,40 @@ class RecipeDetailScreen extends StatelessWidget {
     );
   }
 
-  _buildMacronutrientCard ({
+  _buildMacronutrientCard({
     required Color color,
     required String label,
     required String value,
   }) {
-    return Card(
-      // color: color.withOpacity(0.1),
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: TextStyle(color: color, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 4),
-            Text(value, style: TextStyle(color: Colors.black, fontSize: 16)),
-          ],
-        ),
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                value,
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          Text(
+            label,
+            style: TextStyle(color: Colors.black, fontWeight: FontWeight.w300),
+          ),
+          // const SizedBox(height: 4),
+        ],
       ),
     );
   }

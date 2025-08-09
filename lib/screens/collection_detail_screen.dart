@@ -15,7 +15,7 @@ class CollectionDetailScreen extends StatelessWidget {
     title: 'Test Recipe',
     imagePath: 'https://i.ytimg.com/vi/WcsQPkBPiDw/maxresdefault.jpg',
     ingredients: ['Ingredient 1', 'Ingredient 2'],
-    steps: ['Step 1', 'Step 2'],
+    steps: ['Step 1', 'Step 2', 'Step 3', 'Step 4', 'Step 5', 'Step 6'],
     createdAt: DateTime.now(),
   );
 
@@ -100,9 +100,8 @@ class CollectionDetailScreen extends StatelessWidget {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => RecipeDetailScreen(
-                                  recipe: testRecipe,
-                                ),
+                                builder: (context) =>
+                                    RecipeDetailScreen(recipe: testRecipe),
                               ),
                             );
                           },
