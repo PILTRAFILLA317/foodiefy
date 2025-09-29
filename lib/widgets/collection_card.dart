@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:foodiefy/models/recipe.dart';
 import 'package:foodiefy/models/collection.dart';
-// import 'package:foodiefy/models/collection_service.dart';
+import 'package:foodiefy/services/storage_service.dart';
+import 'package:foodiefy/services/collection_service.dart';
 
 class CollectionCard extends StatefulWidget {
   final RecipeCollection collection;
@@ -20,37 +22,57 @@ class CollectionCard extends StatefulWidget {
 }
 
 class _CollectionCardState extends State<CollectionCard> {
-  // final CollectionService _collectionService = CollectionService();
   List<Recipe> _recipes = [];
   bool _isLoading = true;
+  int _totalRecipes = 0;
+  List<String> _lastRecipeIds = [];
 
   @override
   void initState() {
-    // super.initState();
+    super.initState();
     _loadRecipes();
+  }
+
+  @override
+  void didUpdateWidget(covariant CollectionCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.collection.id != widget.collection.id ||
+        !listEquals(widget.collection.recipeIds, _lastRecipeIds)) {
+      _loadRecipes();
+    }
   }
 
   Future<void> _loadRecipes() async {
     try {
-      print('Loading recipes for collection: ${widget.collection.name}');
-      // final recipes = await _collectionService
-      //     .getRecipesByIds(widget.collection.recipeIds);
-      final recipes = List.generate(
-        widget.collection.recipeIds.length,
-        (index) => Recipe(
-          id: widget.collection.recipeIds[index],
-          title: 'Recipe ${widget.collection.recipeIds[index]}',
-          imagePath: 'https://picsum.photos/200/300?random=${index + 1}',
-          ingredients: [],
-          steps: [],
-          createdAt: DateTime.now(),
-        ),
-      );
+      final all = await StorageService.getRecipes();
+      List<String> activeRecipeIds;
+      if (widget.collection.isMaster) {
+        activeRecipeIds = all.map((recipe) => recipe.id).toList();
+      } else {
+        final collections = await CollectionService().getCollections();
+        final latest = collections.firstWhere(
+          (collection) => collection.id == widget.collection.id,
+          orElse: () => widget.collection,
+        );
+        activeRecipeIds = List<String>.from(latest.recipeIds);
+        widget.collection.recipeIds
+          ..clear()
+          ..addAll(activeRecipeIds);
+      }
+
+      final recipes = widget.collection.isMaster
+          ? all
+          : all.where((r) => activeRecipeIds.contains(r.id)).toList();
+
+      if (!mounted) return;
       setState(() {
-        _recipes = recipes.take(2).toList();
+        _totalRecipes = recipes.length;
+        _recipes = recipes.take(4).toList();
         _isLoading = false;
+        _lastRecipeIds = List<String>.from(activeRecipeIds);
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() => _isLoading = false);
     }
   }
@@ -62,27 +84,13 @@ class _CollectionCardState extends State<CollectionCard> {
       onLongPress: _showOptionsMenu,
       child: Container(
         decoration: BoxDecoration(
-          // borderRadius: BorderRadius.circular(0),
           color: Colors.transparent,
-          // boxShadow: [
-          //   BoxShadow(
-          //     color: Colors.black.withOpacity(0.1),
-          //     blurRadius: 8,
-          //     offset: const Offset(0, 2),
-          //   ),
-          // ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              flex: 3,
-              child: _buildImageGrid(),
-            ),
-            Expanded(
-              flex: 1,
-              child: _buildCollectionInfo(),
-            ),
+            Expanded(flex: 3, child: _buildImageGrid()),
+            Expanded(flex: 1, child: _buildCollectionInfo()),
           ],
         ),
       ),
@@ -93,35 +101,29 @@ class _CollectionCardState extends State<CollectionCard> {
     if (_isLoading) {
       return Container(
         decoration: const BoxDecoration(
-          // borderRadius: BorderRadius.all(Radius.circular(0)),
+          borderRadius: BorderRadius.all(Radius.circular(12)),
           color: Colors.grey,
         ),
-        child: const Center(child: CircularProgressIndicator(
-          color: Colors.white,
-          strokeWidth: 6,
-        )),
+        child: const Center(
+          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 6),
+        ),
       );
     }
 
     if (_recipes.isEmpty) {
       return Container(
         decoration: BoxDecoration(
-          // borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+          borderRadius: BorderRadius.all(Radius.circular(12)),
           color: Colors.grey[200],
         ),
         child: const Center(
-          child: Icon(
-            Icons.restaurant_menu,
-            size: 40,
-            color: Colors.grey,
-          ),
+          child: Icon(Icons.restaurant_menu, size: 40, color: Colors.grey),
         ),
       );
     }
 
     return Container(
       decoration: const BoxDecoration(
-        // borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
       ),
       child: ClipRRect(
         borderRadius: const BorderRadius.all(Radius.circular(12)),
@@ -177,8 +179,11 @@ class _CollectionCardState extends State<CollectionCard> {
             ),
             child: recipe.imagePath == null
                 ? const Center(
-                    child: Icon(Icons.restaurant_menu,
-                        size: 20, color: Colors.grey),
+                    child: Icon(
+                      Icons.restaurant_menu,
+                      size: 20,
+                      color: Colors.grey,
+                    ),
                   )
                 : null,
           );
@@ -203,19 +208,13 @@ class _CollectionCardState extends State<CollectionCard> {
         children: [
           Text(
             widget.collection.name,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
           Text(
-            '${widget.collection.recipeIds.length} recipes',
-            style: TextStyle(
-              color: Colors.grey[600],
-              fontSize: 12,
-            ),
+            '$_totalRecipes ${_totalRecipes == 1 ? 'receta' : 'recetas'}',
+            style: TextStyle(color: Colors.grey[600], fontSize: 12),
           ),
         ],
       ),
@@ -223,12 +222,19 @@ class _CollectionCardState extends State<CollectionCard> {
   }
 
   void _showOptionsMenu() {
+    if (widget.collection.isMaster) {
+      return;
+    }
     showModalBottomSheet(
+      backgroundColor: Colors.white,
       context: context,
       builder: (context) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            SizedBox(
+              height: 15,
+            ),
             ListTile(
               leading: const Icon(Icons.edit),
               title: const Text('Edit Collection'),
@@ -239,8 +245,10 @@ class _CollectionCardState extends State<CollectionCard> {
             ),
             ListTile(
               leading: const Icon(Icons.delete, color: Colors.red),
-              title: const Text('Delete Collection',
-                  style: TextStyle(color: Colors.red)),
+              title: const Text(
+                'Delete Collection',
+                style: TextStyle(color: Colors.red),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 widget.onDelete();

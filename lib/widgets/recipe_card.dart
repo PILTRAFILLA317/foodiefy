@@ -1,14 +1,18 @@
 // lib/widgets/recipe_card.dart (actualizado)
 import 'package:flutter/material.dart';
-import 'dart:io';
 import '../models/recipe.dart';
 
 class RecipeCard extends StatelessWidget {
   final Recipe recipe;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
 
-  const RecipeCard({Key? key, required this.recipe, required this.onTap})
-    : super(key: key);
+  const RecipeCard({
+    super.key,
+    required this.recipe,
+    required this.onTap,
+    this.onLongPress,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -18,6 +22,7 @@ class RecipeCard extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
         onTap: onTap,
+        onLongPress: onLongPress,
         borderRadius: BorderRadius.circular(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -126,44 +131,6 @@ class RecipeCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                // Custom container with icon and centered text
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Container(
-                    width: 75,
-                    height: 25,
-                    decoration: BoxDecoration(
-                      color: Colors.black,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Row(
-                      children: [
-                        const Padding(
-                          padding: EdgeInsets.only(left: 4),
-                          child: Icon(
-                            Icons.timer,
-                            color: Colors.white,
-                            size: 14,
-                          ),
-                        ),
-                        Expanded(
-                          child: Center(
-                            child: Text(
-                              '1h 30m',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
               ],
             ),
           ),

@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:foodiefy/models/recipe.dart';
 import 'package:foodiefy/models/collection.dart';
 import 'package:foodiefy/widgets/collection_card.dart';
+import 'package:foodiefy/widgets/collection_creation_dialog.dart';
 
 import 'package:foodiefy/screens/collection_detail_screen.dart';
+import 'package:foodiefy/screens/create_recipe_screen.dart';
+import 'package:foodiefy/services/collection_service.dart';
+import 'package:foodiefy/services/storage_service.dart'; // Asegúrate de importar
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -13,6 +17,30 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  List<RecipeCollection> _collections = [];
+  List<Recipe> _allRecipes = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCollections();
+    _loadAllRecipes();
+  }
+
+  Future<void> _loadCollections() async {
+    final collections = await CollectionService().getCollections();
+    setState(() {
+      _collections = collections;
+    });
+  }
+
+  Future<void> _loadAllRecipes() async {
+    final recipes = await StorageService.getRecipes();
+    setState(() {
+      _allRecipes = recipes;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -25,7 +53,8 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: const Icon(Icons.add, color: Colors.black),
             onPressed: () {
-              print('add button pressed');
+              // print('add button pressed');
+              _showCollectionCreationDialog();
             },
           ),
           IconButton(
@@ -71,34 +100,64 @@ class _HomeScreenState extends State<HomeScreen> {
                   mainAxisSpacing: 16,
                   childAspectRatio: 0.75,
                 ),
-                itemCount: 10, // Replace with your collection count
+                itemCount:
+                    _collections.length + 1, // +1 for "Todas las recetas"
                 itemBuilder: (context, index) {
-                  return CollectionCard(
-                    collection: RecipeCollection(
+                  if (index == 0) {
+                    // "Todas las recetas" card
+                    final allRecipesCollection = RecipeCollection(
                       createdAt: DateTime.now(),
                       updatedAt: DateTime.now(),
-                      id: 'collection_$index',
-                      name: 'Collection $index',
-                      recipeIds: List.generate(4, (i) => 'recipe_$i'),
-                    ),
-                    onTap: () {
-                      Navigator.push(
+                      recipeIds: _allRecipes.map((r) => r.id).toList(),
+                      id: '0',
+                      name: 'Todas las recetas',
+                      isMaster: true,
+                    );
+                    return CollectionCard(
+                      collection: allRecipesCollection,
+                      onTap: () async {
+                        final changed = await Navigator.push<bool>(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CollectionDetailScreen(
+                              recipeCollection: allRecipesCollection,
+                            ),
+                          ),
+                        );
+                        if (changed == true) {
+                          await Future.wait([
+                            _loadCollections(),
+                            _loadAllRecipes(),
+                          ]);
+                        }
+                      },
+                      // No delete for this card
+                      onDelete: () {},
+                    );
+                  }
+                  // Other collections
+                  final collection = _collections[index - 1];
+                  return CollectionCard(
+                    collection: collection,
+                    onTap: () async {
+                      final changed = await Navigator.push<bool>(
                         context,
                         MaterialPageRoute(
                           builder: (context) => CollectionDetailScreen(
-                            recipeCollection: RecipeCollection(
-                              createdAt: DateTime.now(),
-                              updatedAt: DateTime.now(),
-                              id: 'collection_$index',
-                              name: 'Collection $index',
-                              recipeIds: List.generate(4, (i) => 'recipe_$i'),
-                            ),
+                            recipeCollection: collection,
                           ),
                         ),
                       );
+                      if (changed == true) {
+                        await Future.wait([
+                          _loadCollections(),
+                          _loadAllRecipes(),
+                        ]);
+                      }
                     },
-                    onDelete: () {
-                      print('Deleted Collection $index');
+                    onDelete: () async {
+                      await CollectionService().deleteCollection(collection);
+                      _loadCollections();
                     },
                   );
                 },
@@ -117,14 +176,33 @@ class _HomeScreenState extends State<HomeScreen> {
       width: 100, // Set your desired width here
       child: FloatingActionButton.extended(
         backgroundColor: const Color.fromARGB(255, 4, 4, 6),
-        onPressed: () {
-          print('Add Recipe button pressed');
+        onPressed: () async {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const CreateRecipeScreen()),
+          );
+          if (result == true) {
+            _loadCollections();
+            _loadAllRecipes();
+          }
         },
         tooltip: 'Add Recipe',
         label: const Icon(Icons.add, color: Colors.white),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(30.0),
         ),
+      ),
+    );
+  }
+
+  void _showCollectionCreationDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => CollectionCreationDialog(
+        onImportSuccess: () {
+          _loadCollections();
+          // Navigator.pop(context);
+        },
       ),
     );
   }

@@ -1,3 +1,4 @@
+
 class RecipeCollection {
   final String id;
   final String name;
@@ -6,6 +7,7 @@ class RecipeCollection {
   final List<String> recipeIds;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final bool isMaster;
 
   RecipeCollection({
     required this.id,
@@ -15,6 +17,7 @@ class RecipeCollection {
     required this.recipeIds,
     required this.createdAt,
     required this.updatedAt,
+    required this.isMaster,
   });
 
   Map<String, dynamic> toJson() {
@@ -26,6 +29,7 @@ class RecipeCollection {
       'recipeIds': recipeIds,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
+      'isMaster' : isMaster,
     };
   }
 
@@ -38,6 +42,7 @@ class RecipeCollection {
       recipeIds: List<String>.from(json['recipeIds']),
       createdAt: DateTime.parse(json['createdAt']),
       updatedAt: DateTime.parse(json['updatedAt']),
+      isMaster: json['isMaster'] ?? false,
     );
   }
 }
