@@ -6,6 +6,7 @@ import 'package:foodiefy/widgets/collection_creation_dialog.dart';
 
 import 'package:foodiefy/screens/collection_detail_screen.dart';
 import 'package:foodiefy/screens/create_recipe_screen.dart';
+import 'package:foodiefy/screens/import_recipe_screen.dart';
 import 'package:foodiefy/services/collection_service.dart';
 import 'package:foodiefy/services/storage_service.dart'; // Asegúrate de importar
 
@@ -101,7 +102,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   childAspectRatio: 0.75,
                 ),
                 itemCount:
-                    _collections.length + 1, // +1 for "Todas las recetas"
+                    _collections.length + 1,
                 itemBuilder: (context, index) {
                   if (index == 0) {
                     // "Todas las recetas" card
@@ -176,16 +177,7 @@ class _HomeScreenState extends State<HomeScreen> {
       width: 100, // Set your desired width here
       child: FloatingActionButton.extended(
         backgroundColor: const Color.fromARGB(255, 4, 4, 6),
-        onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const CreateRecipeScreen()),
-          );
-          if (result == true) {
-            _loadCollections();
-            _loadAllRecipes();
-          }
-        },
+        onPressed: _showAddRecipeOptions,
         tooltip: 'Add Recipe',
         label: const Icon(Icons.add, color: Colors.white),
         shape: RoundedRectangleBorder(
@@ -193,6 +185,161 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _showAddRecipeOptions() async {
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 44,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Añadir receta',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _buildAddRecipeOption(
+                  icon: Icons.edit,
+                  title: 'Crear manualmente',
+                  subtitle: 'Escribe ingredientes y pasos desde cero.',
+                  onTap: () => Navigator.pop(context, 'manual'),
+                ),
+                const SizedBox(height: 12),
+                _buildAddRecipeOption(
+                  icon: Icons.link,
+                  title: 'Importar desde enlace',
+                  subtitle: 'Pega un link de tus redes y generamos la receta.',
+                  onTap: () => Navigator.pop(context, 'import'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (!mounted) return;
+
+    if (result == 'manual') {
+      await _navigateToCreateRecipe();
+    } else if (result == 'import') {
+      final importedRecipe = await Navigator.push<Recipe?>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const ImportRecipeScreen(),
+        ),
+      );
+      if (importedRecipe != null) {
+        await _onRecipeCreated(importedRecipe);
+      }
+    }
+  }
+
+  Widget _buildAddRecipeOption({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F5F5),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade300),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: Colors.white),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: Colors.black54),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _navigateToCreateRecipe({Recipe? template}) async {
+    final recipe = await Navigator.push<Recipe?>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CreateRecipeScreen(template: template),
+      ),
+    );
+    if (recipe != null) {
+      await _onRecipeCreated(recipe);
+    }
+  }
+
+  Future<void> _onRecipeCreated(Recipe recipe) async {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('"${recipe.title}" se guardó en tus recetas.'),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+    await Future.wait([
+      _loadCollections(),
+      _loadAllRecipes(),
+    ]);
   }
 
   void _showCollectionCreationDialog() {

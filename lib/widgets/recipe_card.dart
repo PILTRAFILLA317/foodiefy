@@ -1,5 +1,8 @@
 // lib/widgets/recipe_card.dart (actualizado)
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+
 import '../models/recipe.dart';
 
 class RecipeCard extends StatelessWidget {
@@ -38,10 +41,11 @@ class RecipeCard extends StatelessWidget {
                     Text(
                       recipe.title,
                       style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
                       ),
-                      maxLines: 2,
+                      maxLines: 1,
+                      softWrap: false,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const Spacer(),
@@ -70,17 +74,7 @@ class RecipeCard extends StatelessWidget {
             borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
             child: Stack(
               children: [
-                if (recipe.imagePath != null)
-                  Image.network(
-                    recipe.imagePath!,
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    height: double.infinity,
-                    errorBuilder: (context, error, stackTrace) =>
-                        _buildPlaceholder(),
-                  )
-                else
-                  _buildPlaceholder(),
+                Positioned.fill(child: _buildImageContent()),
                 // Gradient overlay
                 Positioned.fill(
                   child: Container(
@@ -139,6 +133,40 @@ class RecipeCard extends StatelessWidget {
     );
   }
 
+  Widget _buildImageContent() {
+    final provider = _resolveImageProvider(recipe.imagePath);
+    if (provider == null) {
+      return _buildPlaceholder();
+    }
+
+    return Image(
+      image: provider,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => _buildPlaceholder(),
+    );
+  }
+
+  ImageProvider<Object>? _resolveImageProvider(String? path) {
+    if (path == null) return null;
+    final trimmed = path.trim();
+    if (trimmed.isEmpty) return null;
+
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return NetworkImage(trimmed);
+    }
+
+    final filePath = trimmed.startsWith('file://')
+        ? Uri.parse(trimmed).toFilePath()
+        : trimmed;
+
+    final file = File(filePath);
+    if (!file.existsSync()) {
+      return null;
+    }
+
+    return FileImage(file);
+  }
+
   Widget _buildPlaceholder() {
     return Container(
       width: double.infinity,
@@ -153,7 +181,7 @@ class RecipeCard extends StatelessWidget {
       child: const Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.restaurant_menu, size: 32, color: Colors.white),
+              Icon(Icons.restaurant_menu, size: 32, color: Colors.white),
           SizedBox(height: 4),
           Text(
             'Sin imagen',

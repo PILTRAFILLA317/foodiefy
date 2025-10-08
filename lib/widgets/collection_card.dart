@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:foodiefy/models/recipe.dart';
@@ -83,9 +85,7 @@ class _CollectionCardState extends State<CollectionCard> {
       onTap: widget.onTap,
       onLongPress: _showOptionsMenu,
       child: Container(
-        decoration: BoxDecoration(
-          color: Colors.transparent,
-        ),
+        decoration: BoxDecoration(color: Colors.transparent),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -113,46 +113,23 @@ class _CollectionCardState extends State<CollectionCard> {
     if (_recipes.isEmpty) {
       return Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.all(Radius.circular(12)),
-          color: Colors.grey[200],
+          borderRadius: const BorderRadius.all(Radius.circular(12)),
+          color: Colors.grey.shade200,
         ),
-        child: const Center(
-          child: Icon(Icons.restaurant_menu, size: 40, color: Colors.grey),
-        ),
+        child: _buildPlaceholderIcon(),
       );
     }
 
-    return Container(
-      decoration: const BoxDecoration(
-      ),
-      child: ClipRRect(
-        borderRadius: const BorderRadius.all(Radius.circular(12)),
-        child: _recipes.length == 1
-            ? _buildSingleImage(_recipes[0])
-            : _buildMultipleImages(),
-      ),
+    return ClipRRect(
+      borderRadius: const BorderRadius.all(Radius.circular(12)),
+      child: _recipes.length == 1
+          ? _buildSingleImage(_recipes[0])
+          : _buildMultipleImages(),
     );
   }
 
   Widget _buildSingleImage(Recipe recipe) {
-    return Container(
-      width: double.infinity,
-      height: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.grey[300],
-        image: recipe.imagePath != null
-            ? DecorationImage(
-                image: NetworkImage(recipe.imagePath!),
-                fit: BoxFit.cover,
-              )
-            : null,
-      ),
-      child: recipe.imagePath == null
-          ? const Center(
-              child: Icon(Icons.restaurant_menu, size: 40, color: Colors.grey),
-            )
-          : null,
-    );
+    return _buildRecipeTile(recipe, iconSize: 40);
   }
 
   Widget _buildMultipleImages() {
@@ -167,26 +144,7 @@ class _CollectionCardState extends State<CollectionCard> {
       itemBuilder: (context, index) {
         if (index < _recipes.length) {
           final recipe = _recipes[index];
-          return Container(
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              image: recipe.imagePath != null
-                  ? DecorationImage(
-                      image: NetworkImage(recipe.imagePath!),
-                      fit: BoxFit.cover,
-                    )
-                  : null,
-            ),
-            child: recipe.imagePath == null
-                ? const Center(
-                    child: Icon(
-                      Icons.restaurant_menu,
-                      size: 20,
-                      color: Colors.grey,
-                    ),
-                  )
-                : null,
-          );
+          return _buildRecipeTile(recipe, iconSize: 20);
         } else {
           return Container(
             color: Colors.grey[200],
@@ -197,6 +155,60 @@ class _CollectionCardState extends State<CollectionCard> {
         }
       },
     );
+  }
+
+  Widget _buildRecipeTile(Recipe recipe, {double iconSize = 20}) {
+    final provider = _resolveImageProvider(recipe.imagePath);
+    if (provider == null) {
+      return Container(
+        color: Colors.grey.shade300,
+        child: _buildPlaceholderIcon(),
+      );
+    }
+
+    return Container(
+      color: Colors.grey.shade300,
+      child: Image(
+        image: provider,
+        fit: BoxFit.cover,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) {
+            return child;
+          }
+          return _buildPlaceholderIcon();
+        },
+        errorBuilder: (context, error, stackTrace) {
+          return _buildPlaceholderIcon();
+        },
+      ),
+    );
+  }
+
+  Widget _buildPlaceholderIcon() {
+    return Center(
+      child: Icon(Icons.restaurant_menu, size: 30, color: Colors.grey),
+    );
+  }
+
+  ImageProvider<Object>? _resolveImageProvider(String? path) {
+    if (path == null) return null;
+    final trimmed = path.trim();
+    if (trimmed.isEmpty) return null;
+
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return NetworkImage(trimmed);
+    }
+
+    final filePath = trimmed.startsWith('file://')
+        ? Uri.parse(trimmed).toFilePath()
+        : trimmed;
+
+    final file = File(filePath);
+    if (!file.existsSync()) {
+      return null;
+    }
+
+    return FileImage(file);
   }
 
   Widget _buildCollectionInfo() {
@@ -232,9 +244,7 @@ class _CollectionCardState extends State<CollectionCard> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(
-              height: 15,
-            ),
+            SizedBox(height: 15),
             ListTile(
               leading: const Icon(Icons.edit),
               title: const Text('Edit Collection'),

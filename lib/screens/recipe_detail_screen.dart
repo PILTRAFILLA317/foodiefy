@@ -70,16 +70,15 @@ class RecipeDetailScreen extends StatelessWidget {
   }
 
   Widget _buildImageSection() {
-    if (recipe.imagePath != null) {
+    final provider = _resolveImageProvider(recipe.imagePath);
+    if (provider != null) {
       return SizedBox(
         height: 250,
         width: double.infinity,
-        child: Image.file(
-          File(recipe.imagePath!),
+        child: Image(
+          image: provider,
           fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            return _buildPlaceholderImage();
-          },
+          errorBuilder: (_, __, ___) => _buildPlaceholderImage(),
         ),
       );
     }
@@ -102,6 +101,27 @@ class RecipeDetailScreen extends StatelessWidget {
     );
   }
 
+  ImageProvider<Object>? _resolveImageProvider(String? path) {
+    if (path == null) return null;
+    final trimmed = path.trim();
+    if (trimmed.isEmpty) return null;
+
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return NetworkImage(trimmed);
+    }
+
+    final filePath = trimmed.startsWith('file://')
+        ? Uri.parse(trimmed).toFilePath()
+        : trimmed;
+
+    final file = File(filePath);
+    if (!file.existsSync()) {
+      return null;
+    }
+
+    return FileImage(file);
+  }
+
   Widget _buildTitleSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -111,16 +131,21 @@ class RecipeDetailScreen extends StatelessWidget {
           style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 4),
-        Row(
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (recipe.isImported) ...[
-              const Icon(Icons.link, size: 16, color: Colors.black),
-              const SizedBox(width: 4),
-              const Text(
-                'Importada',
-                style: TextStyle(color: Colors.black, fontSize: 12),
+              Row(
+                children: [
+                  const Icon(Icons.link, size: 16, color: Colors.black),
+                  const SizedBox(width: 4),
+                  const Text(
+                    'Importada',
+                    style: TextStyle(color: Colors.black, fontSize: 12),
+                  ),
+                ],
               ),
-              const SizedBox(width: 16),
+              const SizedBox(height: 10),
             ],
             if (recipe.isPublic) ...[
               const Icon(Icons.public, size: 16, color: Colors.green),
@@ -130,22 +155,26 @@ class RecipeDetailScreen extends StatelessWidget {
                 style: TextStyle(color: Colors.green, fontSize: 12),
               ),
             ] else ...[
-              SvgPicture.asset(
-                width: 30,
-                height: 30,
-                'assets/instagram_icon.svg',
-                colorFilter: ColorFilter.mode(Colors.grey, BlendMode.srcIn),
-                semanticsLabel: 'Label',
-              ),
-              const SizedBox(width: 4),
-              const Text(
-                // '@${recipe.author}',
-                '@juan_el_recetas',
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+              Row(
+                children: [
+                  SvgPicture.asset(
+                    width: 30,
+                    height: 30,
+                    'assets/instagram_icon.svg',
+                    colorFilter: ColorFilter.mode(Colors.grey, BlendMode.srcIn),
+                    semanticsLabel: 'Label',
+                  ),
+                  const SizedBox(width: 4),
+                  const Text(
+                    // '@${recipe.author}',
+                    '@juan_el_recetas',
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
             ],
           ],

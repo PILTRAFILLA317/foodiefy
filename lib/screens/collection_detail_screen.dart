@@ -1,8 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import '../models/collection.dart';
 import '../models/recipe.dart';
 import 'package:foodiefy/widgets/recipe_card.dart';
 import 'package:foodiefy/screens/recipe_detail_screen.dart';
+import 'package:foodiefy/screens/create_recipe_screen.dart';
+import 'package:foodiefy/screens/import_recipe_screen.dart';
 import 'package:foodiefy/services/storage_service.dart';
 import 'package:foodiefy/services/collection_service.dart';
 import 'package:foodiefy/services/recipe_service.dart';
@@ -41,9 +45,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
   Future<void> _loadRecipes() async {
     try {
       final allRecipes = await StorageService.getRecipes();
-      final recipeLookup = {
-        for (final recipe in allRecipes) recipe.id: recipe,
-      };
+      final recipeLookup = {for (final recipe in allRecipes) recipe.id: recipe};
       List<String> activeRecipeIds;
       if (widget.recipeCollection.isMaster) {
         activeRecipeIds = allRecipes.map((recipe) => recipe.id).toList();
@@ -64,8 +66,8 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
       final recipes = widget.recipeCollection.isMaster
           ? allRecipes
           : allRecipes
-              .where((recipe) => activeRecipeIds.contains(recipe.id))
-              .toList();
+                .where((recipe) => activeRecipeIds.contains(recipe.id))
+                .toList();
 
       if (!mounted) return;
       final filtered = _filterRecipes(recipes, _searchController.text);
@@ -157,35 +159,35 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                 child: _isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : _filteredRecipes.isEmpty
-                        ? _buildEmptyState()
-                        : GridView.builder(
-                            gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
+                    ? _buildEmptyState()
+                    : GridView.builder(
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: 2,
                               childAspectRatio: 0.75,
                               crossAxisSpacing: 16,
                               mainAxisSpacing: 16,
                             ),
-                            itemCount: _filteredRecipes.length,
-                            itemBuilder: (context, index) {
-                              final recipe = _filteredRecipes[index];
-                              return RecipeCard(
-                                recipe: recipe,
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          RecipeDetailScreen(recipe: recipe),
-                                    ),
-                                  );
-                                },
-                                onLongPress: () {
-                                  _openCollectionSelectionSheet(recipe);
-                                },
+                        itemCount: _filteredRecipes.length,
+                        itemBuilder: (context, index) {
+                          final recipe = _filteredRecipes[index];
+                          return RecipeCard(
+                            recipe: recipe,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      RecipeDetailScreen(recipe: recipe),
+                                ),
                               );
                             },
-                          ),
+                            onLongPress: () {
+                              _openCollectionSelectionSheet(recipe);
+                            },
+                          );
+                        },
+                      ),
               ),
             ],
           ),
@@ -220,35 +222,16 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
     final allCollections = await service.getCollections();
     if (!mounted) return;
 
-    final collections = allCollections
-        .where((collection) => !collection.isMaster)
-        .toList()
-      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-
-    if (collections.isEmpty) {
-      await showDialog<void>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: const Text('Guardar en colecciones'),
-          content:
-              const Text('Crea una colección para poder guardar la receta.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cerrar'),
-            ),
-          ],
-        ),
-      );
-      return;
-    }
+    final collections =
+        allCollections.where((collection) => !collection.isMaster).toList()
+          ..sort(
+            (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+          );
 
     if (_recipeLookup.isEmpty) {
       final allRecipes = await StorageService.getRecipes();
       if (!mounted) return;
-      _recipeLookup = {
-        for (final r in allRecipes) r.id: r,
-      };
+      _recipeLookup = {for (final r in allRecipes) r.id: r};
     }
 
     final Map<String, bool> selections = {
@@ -308,74 +291,110 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                     const SizedBox(height: 8),
                     ConstrainedBox(
                       constraints: BoxConstraints(
-                        maxHeight: MediaQuery.of(sheetContext).size.height * 0.6,
+                        maxHeight:
+                            MediaQuery.of(sheetContext).size.height * 0.6,
                       ),
-                      child: ListView.separated(
-                        shrinkWrap: true,
-                        itemCount: collections.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 8),
-                        itemBuilder: (context, index) {
-                          final collection = collections[index];
-                          final isSelected = selections[collection.id] ?? false;
-                          final previewRecipe = _findFirstRecipeInCollection(collection);
-
-                          return GestureDetector(
-                            onTap: () {
-                              setSheetState(() {
-                                selections[collection.id] = !isSelected;
-                              });
-                            },
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? const Color(0xFFF2F2F2)
-                                    : Colors.white,
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(
-                                  color: isSelected
-                                      ? const Color(0xFF040406)
-                                      : Colors.grey.shade300,
-                                ),
-                                boxShadow: [
-                                  if (isSelected)
-                                    BoxShadow(
-                                      color: const Color(0x0D000000),
-                                      blurRadius: 6,
-                                      offset: const Offset(0, 3),
-                                    ),
-                                ],
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 10,
-                              ),
-                              child: Row(
-                                children: [
-                                  _buildCollectionThumbnail(previewRecipe),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Text(
-                                      collection.name,
-                                      style: const TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w600,
+                      child: collections.isEmpty
+                          ? Center(
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 24.0),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: const [
+                                    Icon(Icons.collections_bookmark,
+                                        color: Colors.grey, size: 36),
+                                    SizedBox(height: 12),
+                                    Text(
+                                      'Aún no tienes colecciones creadas.',
+                                      style: TextStyle(
+                                        color: Colors.grey,
+                                        fontWeight: FontWeight.w500,
                                       ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    SizedBox(height: 6),
+                                    Text(
+                                      'Puedes crear una desde la pantalla principal.',
+                                      style: TextStyle(color: Colors.grey),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
+                          : ListView.separated(
+                              shrinkWrap: true,
+                              itemCount: collections.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(height: 8),
+                              itemBuilder: (context, index) {
+                                final collection = collections[index];
+                                final isSelected =
+                                    selections[collection.id] ?? false;
+                                final previewRecipe =
+                                    _findFirstRecipeInCollection(
+                                  collection,
+                                );
+
+                                return GestureDetector(
+                                  onTap: () {
+                                    setSheetState(() {
+                                      selections[collection.id] = !isSelected;
+                                    });
+                                  },
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? const Color(0xFFF2F2F2)
+                                          : Colors.white,
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(
+                                        color: isSelected
+                                            ? const Color(0xFF040406)
+                                            : Colors.grey.shade300,
+                                      ),
+                                      boxShadow: [
+                                        if (isSelected)
+                                          BoxShadow(
+                                            color: const Color(0x0D000000),
+                                            blurRadius: 6,
+                                            offset: const Offset(0, 3),
+                                          ),
+                                      ],
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 10,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        _buildCollectionThumbnail(
+                                            previewRecipe),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Text(
+                                            collection.name,
+                                            style: const TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                        Icon(
+                                          isSelected
+                                              ? Icons.check_circle
+                                              : Icons.add_circle_outline,
+                                          color: isSelected
+                                              ? const Color(0xFF040406)
+                                              : Colors.grey,
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  Icon(
-                                    isSelected
-                                        ? Icons.check_circle
-                                        : Icons.add_circle_outline,
-                                    color: isSelected
-                                        ? const Color(0xFF040406)
-                                        : Colors.grey,
-                                  ),
-                                ],
-                              ),
+                                );
+                              },
                             ),
-                          );
-                        },
-                      ),
                     ),
                     const SizedBox(height: 16),
                     SizedBox(
@@ -387,17 +406,24 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                           final shouldDelete = await showDialog<bool>(
                             context: sheetContext,
                             builder: (dialogContext) => AlertDialog(
+                              backgroundColor: Colors.white,
+
                               title: const Text('Eliminar receta'),
                               content: Text(
                                 '¿Eliminar "${recipe.title}" de todas tus colecciones? Esta acción no se puede deshacer.',
                               ),
                               actions: [
                                 TextButton(
-                                  onPressed: () => Navigator.pop(dialogContext, false),
-                                  child: const Text('Cancelar'),
+                                  onPressed: () =>
+                                      Navigator.pop(dialogContext, false),
+                                  child: const Text(
+                                    'Cancelar',
+                                    style: TextStyle(color: Colors.black),
+                                  ),
                                 ),
                                 ElevatedButton(
-                                  onPressed: () => Navigator.pop(dialogContext, true),
+                                  onPressed: () =>
+                                      Navigator.pop(dialogContext, true),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.red,
                                     foregroundColor: Colors.white,
@@ -424,7 +450,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                           ),
                         ),
                         icon: const Icon(Icons.delete_outline),
-                        label: const Text('Eliminar receta de todas las colecciones'),
+                        label: const Text('Eliminar receta'),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -483,8 +509,9 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content:
-                Text('No se pudieron guardar los cambios. Intenta de nuevo.'),
+            content: Text(
+              'No se pudieron guardar los cambios. Intenta de nuevo.',
+            ),
           ),
         );
       }
@@ -530,19 +557,16 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
           color: Colors.grey.shade200,
           borderRadius: BorderRadius.circular(12),
         ),
-        child: const Icon(
-          Icons.restaurant_menu,
-          color: Colors.grey,
-          size: 20,
-        ),
+        child: const Icon(Icons.restaurant_menu, color: Colors.grey, size: 20),
       );
     }
 
-    if (imagePath != null && imagePath.isNotEmpty) {
+    final provider = _resolveImageProvider(imagePath);
+    if (provider != null) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(12),
-        child: Image.network(
-          imagePath,
+        child: Image(
+          image: provider,
           width: size,
           height: size,
           fit: BoxFit.cover,
@@ -552,6 +576,27 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
     }
 
     return buildPlaceholder();
+  }
+
+  ImageProvider<Object>? _resolveImageProvider(String? path) {
+    if (path == null) return null;
+    final trimmed = path.trim();
+    if (trimmed.isEmpty) return null;
+
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return NetworkImage(trimmed);
+    }
+
+    final filePath = trimmed.startsWith('file://')
+        ? Uri.parse(trimmed).toFilePath()
+        : trimmed;
+
+    final file = File(filePath);
+    if (!file.existsSync()) {
+      return null;
+    }
+
+    return FileImage(file);
   }
 
   Future<void> _deleteRecipeEverywhere(Recipe recipe) async {
@@ -565,7 +610,9 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
     final futures = <Future<void>>[];
     for (final collection in collections) {
       if (collection.recipeIds.contains(recipe.id)) {
-        futures.add(service.removeRecipeFromCollection(collection.id, recipe.id));
+        futures.add(
+          service.removeRecipeFromCollection(collection.id, recipe.id),
+        );
       }
     }
 
@@ -579,9 +626,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
       _filteredRecipes.removeWhere((r) => r.id == recipe.id);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('"${recipe.title}" se eliminó correctamente.'),
-        ),
+        SnackBar(content: Text('"${recipe.title}" se eliminó correctamente.')),
       );
       if (mounted) {
         await _loadRecipes();
@@ -600,17 +645,168 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
 
   Widget _buildFloatingActionButtons() {
     return SizedBox(
-      width: 100,
+      width: 100, // Set your desired width here
       child: FloatingActionButton.extended(
         backgroundColor: const Color.fromARGB(255, 4, 4, 6),
-        onPressed: () {
-          // TODO: conectar con flujo de agregar receta a la colección
-        },
-        tooltip: 'Agregar receta',
+        onPressed: _showAddRecipeOptions,
+        tooltip: 'Add Recipe',
         label: const Icon(Icons.add, color: Colors.white),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(30.0),
         ),
+      ),
+    );
+  }
+
+  Widget _buildAddRecipeOption({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F5F5),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade300),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: Colors.white),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(fontSize: 13, color: Colors.grey),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: Colors.black54),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showAddRecipeOptions() async {
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 44,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Añadir receta',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                _buildAddRecipeOption(
+                  icon: Icons.edit,
+                  title: 'Crear manualmente',
+                  subtitle: 'Escribe ingredientes y pasos desde cero.',
+                  onTap: () => Navigator.pop(context, 'manual'),
+                ),
+                const SizedBox(height: 12),
+                _buildAddRecipeOption(
+                  icon: Icons.link,
+                  title: 'Importar desde enlace',
+                  subtitle: 'Pega un link de tus redes y generamos la receta.',
+                  onTap: () => Navigator.pop(context, 'import'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (!mounted) return;
+
+    Recipe? createdRecipe;
+
+    if (result == 'manual') {
+      createdRecipe = await Navigator.push<Recipe?>(
+        context,
+        MaterialPageRoute(builder: (_) => const CreateRecipeScreen()),
+      );
+    } else if (result == 'import') {
+      createdRecipe = await Navigator.push<Recipe?>(
+        context,
+        MaterialPageRoute(builder: (_) => const ImportRecipeScreen()),
+      );
+    }
+
+    if (createdRecipe != null) {
+      await _handleRecipeCreated(createdRecipe);
+    }
+  }
+
+  Future<void> _handleRecipeCreated(Recipe recipe) async {
+    if (!widget.recipeCollection.isMaster) {
+      await CollectionService().addRecipeToCollection(
+        widget.recipeCollection.id,
+        recipe.id,
+      );
+    }
+
+    setState(() {
+      _hasChanges = true;
+      _isLoading = true;
+    });
+
+    await _loadRecipes();
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '"${recipe.title}" se añadió a "${widget.recipeCollection.name}".',
+        ),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }

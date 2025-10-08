@@ -1,6 +1,6 @@
 // lib/screens/create_recipe_screen.dart
 import 'package:flutter/material.dart';
-// import 'package:image_picker/image_picker.dart';
+import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../models/recipe.dart';
 import '../services/recipe_service.dart';
@@ -9,7 +9,9 @@ import '../widgets/time_picker_widget.dart';
 // import 'auth_placeholder_screen.dart';
 
 class CreateRecipeScreen extends StatefulWidget {
-  const CreateRecipeScreen({super.key});
+  final Recipe? template;
+
+  const CreateRecipeScreen({super.key, this.template});
 
   @override
   State<CreateRecipeScreen> createState() => _CreateRecipeScreenState();
@@ -25,9 +27,45 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
   final List<String> _ingredients = [];
   final List<String> _steps = [];
   File? _selectedImage;
+  String? _remoteImagePath;
   bool _isPublic = false;
   bool _isSaving = false;
   int? _prepTimeMinutes;
+  late final bool _isImportedSource;
+
+  @override
+  void initState() {
+    super.initState();
+    final template = widget.template;
+    _isImportedSource = template?.isImported ?? false;
+
+    if (template != null) {
+      _titleController.text = template.title;
+      _descriptionController.text = template.description ?? '';
+      _ingredients.addAll(template.ingredients);
+      _steps.addAll(template.steps);
+      _isPublic = template.isPublic;
+      _prepTimeMinutes = template.prepTimeMinutes;
+
+      final path = template.imagePath;
+      if (path != null && path.trim().isNotEmpty) {
+        final trimmed = path.trim();
+        if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+          _remoteImagePath = trimmed;
+        } else {
+          final filePath = trimmed.startsWith('file://')
+              ? Uri.parse(trimmed).toFilePath()
+              : trimmed;
+          final file = File(filePath);
+          if (file.existsSync()) {
+            _selectedImage = file;
+          } else {
+            _remoteImagePath = trimmed;
+          }
+        }
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -114,6 +152,14 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
           if (_selectedImage != null)
             Positioned.fill(
               child: Image.file(_selectedImage!, fit: BoxFit.cover),
+            )
+          else if (_remoteImagePath != null)
+            Positioned.fill(
+              child: Image.network(
+                _remoteImagePath!,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => _buildImagePlaceholder(),
+              ),
             ),
           Positioned.fill(
             child: Container(
@@ -157,7 +203,9 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    _selectedImage != null ? 'Cambiar foto' : 'Agregar foto',
+          _selectedImage != null || _remoteImagePath != null
+            ? 'Cambiar foto'
+            : 'Agregar foto',
                     style: const TextStyle(
                       color: Colors.black,
                       fontWeight: FontWeight.bold,
@@ -175,6 +223,12 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildImagePlaceholder() {
+    return Container(
+      color: Colors.grey[300],
     );
   }
 
@@ -627,15 +681,25 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
   }
 
   void _pickImage() async {
-    // final picker = ImagePicker();
-    // final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    try {
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+      if (!mounted) return;
 
-    // if (pickedFile != null) {
-    //   setState(() {
-    //     _selectedImage = File(pickedFile.path);
-    //   });
-    // }
-    print("fotilio");
+      if (pickedFile != null) {
+        setState(() {
+          _selectedImage = File(pickedFile.path);
+          _remoteImagePath = null;
+        });
+      }
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se pudo seleccionar la imagen. Intenta nuevamente.'),
+        ),
+      );
+    }
   }
 
   void _addIngredient() {
@@ -690,8 +754,9 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
             : _descriptionController.text.trim(),
         ingredients: _ingredients,
         steps: _steps,
-        imagePath: _selectedImage?.path,
+        imagePath: _selectedImage?.path ?? _remoteImagePath,
         isPublic: _isPublic,
+        isImported: _isImportedSource,
         prepTimeMinutes: _prepTimeMinutes,
         createdAt: DateTime.now(),
       );
@@ -699,14 +764,7 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
       await RecipeService.createRecipe(recipe);
 
       if (mounted) {
-        Navigator.pop(context, true);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Receta creada exitosamente'),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        Navigator.pop(context, recipe);
       }
     } catch (e) {
       if (mounted) {
