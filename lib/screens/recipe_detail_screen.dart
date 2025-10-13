@@ -55,6 +55,10 @@ class RecipeDetailScreen extends StatelessWidget {
                     _buildDescriptionSection(),
                     const SizedBox(height: 16),
                   ],
+                  if (_hasPrepOrQuantity) ...[
+                    _buildPrepAndYieldSection(),
+                    const SizedBox(height: 24),
+                  ],
                   _buildIngredientsSection(),
                   const SizedBox(height: 24),
                   _buildStepsSection(context),
@@ -123,6 +127,7 @@ class RecipeDetailScreen extends StatelessWidget {
   }
 
   Widget _buildTitleSection() {
+    final creatorInfo = _buildCreatorInfo();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -135,38 +140,16 @@ class RecipeDetailScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (recipe.isImported) ...[
-              Row(
-                children: [
-                  const Icon(Icons.link, size: 16, color: Colors.black),
-                  const SizedBox(width: 4),
-                  const Text(
-                    'Importada',
-                    style: TextStyle(color: Colors.black, fontSize: 12),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
+              _buildImportedBadge(),
+              const SizedBox(height: 8),
             ],
-            if (recipe.isPublic) ...[
-              const Icon(Icons.public, size: 16, color: Colors.green),
-              const SizedBox(width: 4),
-              const Text(
-                'Pública',
-                style: TextStyle(color: Colors.green, fontSize: 12),
-              ),
-            ] else ...[
+            if (creatorInfo != null) ...[
+              creatorInfo,
+              const SizedBox(height: 8),
+            ] else if (!recipe.isImported) ...[
               Row(
                 children: [
-                  SvgPicture.asset(
-                    width: 30,
-                    height: 30,
-                    'assets/instagram_icon.svg',
-                    colorFilter: ColorFilter.mode(Colors.grey, BlendMode.srcIn),
-                    semanticsLabel: 'Label',
-                  ),
-                  const SizedBox(width: 4),
                   const Text(
-                    // '@${recipe.author}',
                     '@juan_el_recetas',
                     style: TextStyle(
                       color: Colors.grey,
@@ -174,7 +157,23 @@ class RecipeDetailScreen extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+                  const SizedBox(width: 7),
+                  SvgPicture.asset(
+                    width: 20,
+                    height: 20,
+                    'assets/youtube_icon.svg',
+                    colorFilter: ColorFilter.mode(Colors.grey, BlendMode.srcIn),
+                    semanticsLabel: 'Label',
+                  ),
                 ],
+              ),
+            ],
+            if (recipe.isPublic) ...[
+              const Icon(Icons.public, size: 16, color: Colors.green),
+              const SizedBox(width: 4),
+              const Text(
+                'Pública',
+                style: TextStyle(color: Colors.green, fontSize: 12),
               ),
             ],
           ],
@@ -503,6 +502,169 @@ class RecipeDetailScreen extends StatelessWidget {
     );
   }
 
+  bool get _hasPrepOrQuantity {
+    final hasPrep = (recipe.prepTimeText != null &&
+            recipe.prepTimeText!.trim().isNotEmpty) ||
+        recipe.prepTimeMinutes != null;
+    final hasQuantity = recipe.finalQuantity != null &&
+        recipe.finalQuantity!.trim().isNotEmpty;
+    return hasPrep || hasQuantity;
+  }
+
+  Widget _buildImportedBadge() {
+    return Row(
+      children: const [
+        Icon(Icons.link, size: 16, color: Colors.black),
+        SizedBox(width: 4),
+        Text(
+          'Importada',
+          style: TextStyle(color: Colors.black, fontSize: 12),
+        ),
+      ],
+    );
+  }
+
+  Widget? _buildCreatorInfo() {
+    final uploader = recipe.uploader?.trim();
+    final platform = recipe.platform?.trim();
+    if (uploader == null || uploader.isEmpty) {
+      return null;
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.person, size: 16, color: Colors.grey),
+        const SizedBox(width: 6),
+        Flexible(
+          child: Text(
+            '@$uploader${platform != null && platform.isNotEmpty ? ' · ${_formatPlatform(platform)}' : ''}',
+            style: const TextStyle(
+              color: Colors.grey,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        if (platform != null && platform.isNotEmpty) ...[
+          const SizedBox(width: 8),
+          _buildPlatformChip(platform),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildPlatformChip(String platform) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade200,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            _iconForPlatform(platform),
+            size: 14,
+            color: Colors.black,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            _formatPlatform(platform),
+            style: const TextStyle(fontSize: 12, color: Colors.black),
+          ),
+        ],
+      ),
+    );
+  }
+
+  IconData _iconForPlatform(String platform) {
+    switch (platform.toLowerCase()) {
+      case 'tiktok':
+        return Icons.music_note;
+      case 'instagram':
+        return Icons.camera_alt_outlined;
+      case 'youtube':
+        return Icons.play_arrow_rounded;
+      default:
+        return Icons.language;
+    }
+  }
+
+  String _formatPlatform(String platform) {
+    if (platform.isEmpty) return platform;
+    return platform[0].toUpperCase() + platform.substring(1).toLowerCase();
+  }
+
+  Widget _buildPrepAndYieldSection() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (recipe.formattedPrepTime.isNotEmpty &&
+              recipe.formattedPrepTime != 'No especificado') ...[
+            _buildInfoRow(
+              icon: Icons.timer_outlined,
+              label: 'Tiempo de preparación',
+              value: recipe.formattedPrepTime,
+            ),
+            // if (recipe.finalQuantity != 'No especificado')
+            //   const SizedBox(height: 12),
+          ],
+          SizedBox(height: 12),
+          if (recipe.formattedFinalQuantity != 'No especificado')
+            _buildInfoRow(
+              icon: Icons.scale_outlined,
+              label: 'Porciones',
+              value: recipe.formattedFinalQuantity,
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 20, color: Colors.black),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: const TextStyle(fontSize: 14),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   void _shareRecipe(BuildContext context) {
     // TODO: Implementar compartir receta
     ScaffoldMessenger.of(context).showSnackBar(
@@ -510,7 +672,7 @@ class RecipeDetailScreen extends StatelessWidget {
     );
   }
 
-  _buildMacronutrientCard({
+  Padding _buildMacronutrientCard({
     required Color color,
     required String label,
     required String value,

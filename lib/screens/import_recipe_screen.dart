@@ -52,7 +52,13 @@ class _ImportRecipeScreenState extends State<ImportRecipeScreen> {
 
       if (!mounted) return;
 
-  Navigator.pop(context, createdRecipe);
+      Navigator.pop(context, createdRecipe);
+    } on ImportRecipeException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = error.message;
+        _isLoading = false;
+      });
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -166,8 +172,8 @@ class _ImportRecipeScreenState extends State<ImportRecipeScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Demo: por ahora cualquier enlace genera una receta aleatoria. '
-                      'Más adelante conectaremos con la API real para traerte los datos exactos.',
+                      'Beta: estamos conectándonos a la API para traerte la receta automáticamente. '
+                      'Puede responder con datos incompletos o con errores si el enlace no es compatible todavía.',
                       style: TextStyle(color: Colors.grey[600], fontSize: 13),
                     ),
                   ),

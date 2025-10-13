@@ -1,5 +1,6 @@
 // lib/screens/create_recipe_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../models/recipe.dart';
@@ -21,6 +22,11 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
+  final _quantityController = TextEditingController();
+  final _totalKcalController = TextEditingController();
+  final _carbsController = TextEditingController();
+  final _proteinController = TextEditingController();
+  final _fatController = TextEditingController();
   final _ingredientController = TextEditingController();
   final _stepController = TextEditingController();
 
@@ -32,6 +38,7 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
   bool _isSaving = false;
   int? _prepTimeMinutes;
   late final bool _isImportedSource;
+  bool _includeMacros = false;
 
   @override
   void initState() {
@@ -42,10 +49,20 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
     if (template != null) {
       _titleController.text = template.title;
       _descriptionController.text = template.description ?? '';
+      _quantityController.text = template.finalQuantity ?? '';
       _ingredients.addAll(template.ingredients);
       _steps.addAll(template.steps);
       _isPublic = template.isPublic;
       _prepTimeMinutes = template.prepTimeMinutes;
+
+      final macros = template.macronutrients;
+      if (macros != null) {
+        _totalKcalController.text = macros.totalKcal?.toString() ?? '';
+        _carbsController.text = macros.carbsGrams?.toString() ?? '';
+        _proteinController.text = macros.proteinGrams?.toString() ?? '';
+        _fatController.text = macros.fatGrams?.toString() ?? '';
+        _includeMacros = true;
+      }
 
       final path = template.imagePath;
       if (path != null && path.trim().isNotEmpty) {
@@ -115,6 +132,8 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
                     _buildBasicInfoSection(),
                     const SizedBox(height: 24),
                     _buildTimeSection(),
+                    const SizedBox(height: 24),
+                    _buildMacrosSection(),
                     const SizedBox(height: 24),
                     _buildIngredientsSection(),
                     const SizedBox(height: 24),
@@ -346,6 +365,30 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
               ],
             ),
             const SizedBox(height: 16),
+            TextFormField(
+              cursorColor: Colors.black,
+              controller: _quantityController,
+              decoration: InputDecoration(
+                labelText: 'Porciones / Cantidad (texto libre)',
+                labelStyle: const TextStyle(color: Colors.black),
+                hintText: 'Ej. "Sirve para 4 personas" o "Rinde 12 galletas"',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.black),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.black),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.black, width: 2),
+                ),
+                prefixIcon: const Icon(Icons.flatware),
+              ),
+              textCapitalization: TextCapitalization.sentences,
+            ),
+            const SizedBox(height: 16),
             TimePickerWidget(
               initialMinutes: _prepTimeMinutes,
               onTimeChanged: (minutes) {
@@ -356,6 +399,128 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildMacrosSection() {
+    return Card(
+      color: Colors.grey[100],
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.pie_chart_outline, color: Colors.black),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'Macronutrientes',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            SwitchListTile.adaptive(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Añadir macronutrientes'),
+              subtitle: const Text(
+                'Calorías totales y gramos de carbohidratos, proteínas y grasas.',
+              ),
+              value: _includeMacros,
+              onChanged: (value) {
+                setState(() => _includeMacros = value);
+              },
+            ),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              child: !_includeMacros
+                  ? const SizedBox.shrink()
+                  : Column(
+                      key: const ValueKey('macros-form'),
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildMacroTextField(
+                          label: 'Calorías totales',
+                          suffix: 'kcal',
+                          controller: _totalKcalController,
+                          icon: Icons.local_fire_department,
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildMacroTextField(
+                                label: 'Carbohidratos',
+                                suffix: 'g',
+                                controller: _carbsController,
+                                icon: Icons.bubble_chart,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _buildMacroTextField(
+                                label: 'Proteínas',
+                                suffix: 'g',
+                                controller: _proteinController,
+                                icon: Icons.fitness_center,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        _buildMacroTextField(
+                          label: 'Grasas',
+                          suffix: 'g',
+                          controller: _fatController,
+                          icon: Icons.opacity,
+                        ),
+                      ],
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMacroTextField({
+    required String label,
+    required TextEditingController controller,
+    required IconData icon,
+    String? suffix,
+  }) {
+    return TextFormField(
+      controller: controller,
+      cursorColor: Colors.black,
+      keyboardType: TextInputType.number,
+      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: Colors.black),
+        suffixText: suffix,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Colors.black),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Colors.black),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Colors.black, width: 2),
+        ),
+        prefixIcon: Icon(icon, color: Colors.black)
       ),
     );
   }
@@ -665,7 +830,7 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
                     : 'Solo tú podrás ver esta receta',
               ),
               value: _isPublic,
-              activeColor: Colors.orange,
+              activeThumbColor: Colors.orange,
               onChanged: (value) {
                 if (value) {
                   _showAuthRequiredForPublic();
@@ -746,18 +911,24 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
     setState(() => _isSaving = true);
 
     try {
+      final macros = _collectMacronutrients();
+
       final recipe = Recipe(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim().isEmpty
             ? null
             : _descriptionController.text.trim(),
+    finalQuantity: _quantityController.text.trim().isEmpty
+      ? null
+      : _quantityController.text.trim(),
         ingredients: _ingredients,
         steps: _steps,
         imagePath: _selectedImage?.path ?? _remoteImagePath,
         isPublic: _isPublic,
         isImported: _isImportedSource,
         prepTimeMinutes: _prepTimeMinutes,
+        macronutrients: macros,
         createdAt: DateTime.now(),
       );
 
@@ -801,12 +972,45 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
     // );
   }
 
+  RecipeMacronutrients? _collectMacronutrients() {
+    if (!_includeMacros) return null;
+
+    final totalKcal = _parseMacroValue(_totalKcalController);
+    final carbs = _parseMacroValue(_carbsController);
+    final protein = _parseMacroValue(_proteinController);
+    final fat = _parseMacroValue(_fatController);
+
+    final hasAnyValue =
+        totalKcal != null || carbs != null || protein != null || fat != null;
+    if (!hasAnyValue) {
+      return null;
+    }
+
+    return RecipeMacronutrients(
+      totalKcal: totalKcal,
+      carbsGrams: carbs,
+      proteinGrams: protein,
+      fatGrams: fat,
+    );
+  }
+
+  int? _parseMacroValue(TextEditingController controller) {
+    final raw = controller.text.trim();
+    if (raw.isEmpty) return null;
+    return int.tryParse(raw);
+  }
+
   @override
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
     _ingredientController.dispose();
     _stepController.dispose();
+    _quantityController.dispose();
+    _totalKcalController.dispose();
+    _carbsController.dispose();
+    _proteinController.dispose();
+    _fatController.dispose();
     super.dispose();
   }
 }

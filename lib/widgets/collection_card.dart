@@ -129,7 +129,10 @@ class _CollectionCardState extends State<CollectionCard> {
   }
 
   Widget _buildSingleImage(Recipe recipe) {
-    return _buildRecipeTile(recipe, iconSize: 40);
+    return AspectRatio(
+      aspectRatio: 1,
+      child: _buildRecipeTile(recipe, iconSize: 40),
+    );
   }
 
   Widget _buildMultipleImages() {
