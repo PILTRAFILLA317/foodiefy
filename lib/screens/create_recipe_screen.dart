@@ -222,9 +222,9 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-          _selectedImage != null || _remoteImagePath != null
-            ? 'Cambiar foto'
-            : 'Agregar foto',
+                    _selectedImage != null || _remoteImagePath != null
+                        ? 'Cambiar foto'
+                        : 'Agregar foto',
                     style: const TextStyle(
                       color: Colors.black,
                       fontWeight: FontWeight.bold,
@@ -246,9 +246,7 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
   }
 
   Widget _buildImagePlaceholder() {
-    return Container(
-      color: Colors.grey[300],
-    );
+    return Container(color: Colors.grey[300]);
   }
 
   Widget _buildBasicInfoSection() {
@@ -421,7 +419,10 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
                     color: Colors.grey[300],
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.pie_chart_outline, color: Colors.black),
+                  child: const Icon(
+                    Icons.pie_chart_outline,
+                    color: Colors.black,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 const Text(
@@ -520,7 +521,7 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
           borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: Colors.black, width: 2),
         ),
-        prefixIcon: Icon(icon, color: Colors.black)
+        prefixIcon: Icon(icon, color: Colors.black),
       ),
     );
   }
@@ -861,7 +862,9 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('No se pudo seleccionar la imagen. Intenta nuevamente.'),
+          content: Text(
+            'No se pudo seleccionar la imagen. Intenta nuevamente.',
+          ),
         ),
       );
     }
@@ -919,9 +922,9 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
         description: _descriptionController.text.trim().isEmpty
             ? null
             : _descriptionController.text.trim(),
-    finalQuantity: _quantityController.text.trim().isEmpty
-      ? null
-      : _quantityController.text.trim(),
+        finalQuantity: _quantityController.text.trim().isEmpty
+            ? null
+            : _quantityController.text.trim(),
         ingredients: _ingredients,
         steps: _steps,
         imagePath: _selectedImage?.path ?? _remoteImagePath,
@@ -930,6 +933,8 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
         prepTimeMinutes: _prepTimeMinutes,
         macronutrients: macros,
         createdAt: DateTime.now(),
+        uploader: widget.template?.uploader,
+        platform: widget.template?.platform,
       );
 
       await RecipeService.createRecipe(recipe);

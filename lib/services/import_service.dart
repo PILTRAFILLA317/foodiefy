@@ -21,13 +21,14 @@ class ImportRecipeService {
     );
 
     if (response.statusCode != 200) {
-      throw ImportRecipeException('Error ${response.statusCode} al contactar la API');
+      throw ImportRecipeException(
+        'Error ${response.statusCode} al contactar la API',
+      );
     }
 
-    final Map<String, dynamic> body = jsonDecode(response.body) as Map<String, dynamic>;
+    final Map<String, dynamic> body =
+        jsonDecode(response.body) as Map<String, dynamic>;
     final recipeData = body['recipe'];
-    print("Macronutrientes:");
-    print(recipeData['macronutrientes']);
 
     if (body['success'] != true || recipeData is! Map<String, dynamic>) {
       throw ImportRecipeException('La API no devolvió una receta válida');
@@ -37,26 +38,23 @@ class ImportRecipeService {
   }
 
   Recipe _mapRecipeFromApi(Map<String, dynamic> recipe) {
-    const demoUploader = 'brooklynbyjanice';
-    const demoPlatform = 'tiktok';
-    const demoThumbnail =
-        'https://p77-sign-va.tiktokcdn.com/tos-maliva-p-0068/oUoSIkVv6BAdixrDosi8gI0CNCKoUAkOIzfo1i~tplv-tiktokx-origin.image?dr=10395&x-expires=1760526000&x-signature=mZeA2ACTWWszMK82ZtIWb1XUooE%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=no1a';
-
     final title = recipe['titulo'] as String? ?? 'Receta importada';
     final description = recipe['descripcion'] as String?;
-  final ingredients = _stringListFromDynamic(recipe['ingredientes']);
-  final steps = _stringListFromDynamic(recipe['pasos']);
-  final prepTimeText = recipe['tiempo_preparacion'] as String?;
-  final prepTime = _parsePrepTime(prepTimeText);
+    final ingredients = _stringListFromDynamic(recipe['ingredientes']);
+    final steps = _stringListFromDynamic(recipe['pasos']);
+    final prepTimeText = recipe['tiempo_preparacion'] as String?;
+    final prepTime = _parsePrepTime(prepTimeText);
     final imageUrl = recipe['imagen'] as String?;
     final originalUrl = recipe['url'] as String?;
-    final uploader = recipe['uploader'] as String? ?? demoUploader;
-    final platform = recipe['platform'] as String? ?? demoPlatform;
-    final thumbnail = recipe['thumbnail'] as String? ?? demoThumbnail;
-  final finalQuantity = recipe['cantidad_final'] as String? ?? 'No especificado';
-    final macronutrients = _parseMacronutrients(
-      recipe['macronutrientes'] as Map<String, dynamic>?,
-    ) ??
+    final uploader = recipe['uploader'] as String?;
+    final platform = recipe['platform'] as String?;
+    final thumbnail = recipe['thumbnail'] as String?;
+    final finalQuantity =
+        recipe['cantidad_final'] as String? ?? 'No especificado';
+    final macronutrients =
+        _parseMacronutrients(
+          recipe['macronutrientes'] as Map<String, dynamic>?,
+        ) ??
         const RecipeMacronutrients(
           totalKcal: 3500,
           carbsGrams: 400,

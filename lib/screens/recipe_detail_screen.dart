@@ -131,6 +131,10 @@ class RecipeDetailScreen extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (recipe.isImported) ...[
+          _buildImportedBadge(),
+          const SizedBox(height: 5),
+        ],
         Text(
           recipe.title,
           style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
@@ -140,18 +144,11 @@ class RecipeDetailScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (recipe.isImported) ...[
-              _buildImportedBadge(),
-              const SizedBox(height: 8),
-            ],
-            if (creatorInfo != null) ...[
-              creatorInfo,
-              const SizedBox(height: 8),
-            ] else if (!recipe.isImported) ...[
               Row(
                 children: [
-                  const Text(
-                    '@juan_el_recetas',
-                    style: TextStyle(
+                  Text(
+                    recipe.uploader ?? 'Desconocido',
+                    style: const TextStyle(
                       color: Colors.grey,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -161,7 +158,7 @@ class RecipeDetailScreen extends StatelessWidget {
                   SvgPicture.asset(
                     width: 20,
                     height: 20,
-                    'assets/youtube_icon.svg',
+                    'assets/${(recipe.platform ?? 'web').toLowerCase()}_icon.svg',
                     colorFilter: ColorFilter.mode(Colors.grey, BlendMode.srcIn),
                     semanticsLabel: 'Label',
                   ),
@@ -330,6 +327,9 @@ class RecipeDetailScreen extends StatelessWidget {
   }
 
   Widget _buildMacronutrients() {
+    if (recipe.macronutrients == null) {
+      return const SizedBox.shrink();
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -358,8 +358,10 @@ class RecipeDetailScreen extends StatelessWidget {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Text(
-                              '1234',
+                            Text(
+                              recipe.macronutrients?.totalKcal != null
+                                  ? '${recipe.macronutrients?.totalKcal}'
+                                  : '0',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -386,21 +388,28 @@ class RecipeDetailScreen extends StatelessWidget {
                         sections: [
                           PieChartSectionData(
                             // value: recipe.macronutrients['carbs'] ?? 0,
-                            value: 12,
+                            value: recipe.macronutrients?.carbsGrams != null
+                                ? recipe.macronutrients!.carbsGrams!.toDouble()
+                                : 0,
                             color: const Color.fromARGB(255, 82, 225, 211),
                             title: ' ',
                             radius: 15,
                           ),
                           PieChartSectionData(
                             // value: recipe.macronutrients['protein'] ?? 0,
-                            value: 8,
+                            value: recipe.macronutrients?.proteinGrams != null
+                                ? recipe.macronutrients!.proteinGrams!
+                                      .toDouble()
+                                : 0,
                             color: const Color.fromARGB(255, 255, 168, 54),
                             title: ' ',
                             radius: 15,
                           ),
                           PieChartSectionData(
                             // value: recipe.macronutrients['fat'] ?? 0,
-                            value: 10,
+                            value: recipe.macronutrients?.fatGrams != null
+                                ? recipe.macronutrients!.fatGrams!.toDouble()
+                                : 0,
                             color: const Color.fromARGB(255, 212, 98, 215),
                             title: ' ',
                             radius: 15,
@@ -418,83 +427,26 @@ class RecipeDetailScreen extends StatelessWidget {
                   _buildMacronutrientCard(
                     color: const Color.fromARGB(255, 82, 225, 211),
                     label: 'Carbs',
-                    value: '12g',
+                    value: recipe.macronutrients?.carbsGrams != null
+                        ? '${recipe.macronutrients?.carbsGrams}g'
+                        : '0g',
                   ),
                   _buildMacronutrientCard(
                     color: const Color.fromARGB(255, 255, 168, 54),
                     label: 'Protein',
-                    value: '8g',
+                    value: recipe.macronutrients?.proteinGrams != null
+                        ? '${recipe.macronutrients?.proteinGrams}g'
+                        : '0g',
                   ),
                   _buildMacronutrientCard(
                     color: const Color.fromARGB(255, 212, 98, 215),
                     label: 'Fat',
-                    value: '10g',
+                    value: recipe.macronutrients?.fatGrams != null
+                        ? '${recipe.macronutrients?.fatGrams}g'
+                        : '0g',
                   ),
                 ],
               ),
-              // Stack(
-              //   children: [
-              //     Positioned.fill(
-              //       child: Center(
-              //         child: Column(
-              //           mainAxisSize: MainAxisSize.min,
-              //           children: [
-              //             const Text(
-              //               '1234',
-              //               style: TextStyle(
-              //                 fontSize: 16,
-              //                 fontWeight: FontWeight.bold,
-              //               ),
-              //             ),
-              //             Text(
-              //               'kcal',
-              //               style: const TextStyle(
-              //                 fontSize: 14,
-              //                 color: Colors.grey,
-              //               ),
-              //             ),
-              //           ],
-              //         ),
-              //         // child: const Text(
-              //         //   '1240 Kcal',
-              //         //   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              //         // ),
-              //       ),
-              //     ),
-              //     PieChart(
-              //       PieChartData(
-              //         centerSpaceColor: Colors.transparent,
-              //         borderData: FlBorderData(show: false),
-              //         sectionsSpace: 5,
-              //         centerSpaceRadius: 35,
-              //         startDegreeOffset: 180,
-              //         sections: [
-              //           PieChartSectionData(
-              //             // value: recipe.macronutrients['carbs'] ?? 0,
-              //             value: 12,
-              //             color: const Color.fromARGB(255, 82, 225, 211),
-              //             title: ' ',
-              //             radius: 15,
-              //           ),
-              //           PieChartSectionData(
-              //             // value: recipe.macronutrients['protein'] ?? 0,
-              //             value: 8,
-              //             color: const Color.fromARGB(255, 255, 168, 54),
-              //             title: ' ',
-              //             radius: 15,
-              //           ),
-              //           PieChartSectionData(
-              //             // value: recipe.macronutrients['fat'] ?? 0,
-              //             value: 10,
-              //             color: const Color.fromARGB(255, 212, 98, 215),
-              //             title: ' ',
-              //             radius: 15,
-              //           ),
-              //         ],
-              //       ),
-              //     ),
-              //   ],
-              // ),
             ],
           ),
         ),
@@ -503,11 +455,12 @@ class RecipeDetailScreen extends StatelessWidget {
   }
 
   bool get _hasPrepOrQuantity {
-    final hasPrep = (recipe.prepTimeText != null &&
+    final hasPrep =
+        (recipe.prepTimeText != null &&
             recipe.prepTimeText!.trim().isNotEmpty) ||
         recipe.prepTimeMinutes != null;
-    final hasQuantity = recipe.finalQuantity != null &&
-        recipe.finalQuantity!.trim().isNotEmpty;
+    final hasQuantity =
+        recipe.finalQuantity != null && recipe.finalQuantity!.trim().isNotEmpty;
     return hasPrep || hasQuantity;
   }
 
@@ -516,10 +469,7 @@ class RecipeDetailScreen extends StatelessWidget {
       children: const [
         Icon(Icons.link, size: 16, color: Colors.black),
         SizedBox(width: 4),
-        Text(
-          'Importada',
-          style: TextStyle(color: Colors.black, fontSize: 12),
-        ),
+        Text('Importada', style: TextStyle(color: Colors.black, fontSize: 12)),
       ],
     );
   }
@@ -565,11 +515,7 @@ class RecipeDetailScreen extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            _iconForPlatform(platform),
-            size: 14,
-            color: Colors.black,
-          ),
+          Icon(_iconForPlatform(platform), size: 14, color: Colors.black),
           const SizedBox(width: 4),
           Text(
             _formatPlatform(platform),
@@ -624,7 +570,7 @@ class RecipeDetailScreen extends StatelessWidget {
           if (recipe.formattedFinalQuantity != 'No especificado')
             _buildInfoRow(
               icon: Icons.scale_outlined,
-              label: 'Porciones',
+              label: 'Porciones / Cantidades',
               value: recipe.formattedFinalQuantity,
             ),
         ],
@@ -654,10 +600,7 @@ class RecipeDetailScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 4),
-              Text(
-                value,
-                style: const TextStyle(fontSize: 14),
-              ),
+              Text(value, style: const TextStyle(fontSize: 14)),
             ],
           ),
         ),
