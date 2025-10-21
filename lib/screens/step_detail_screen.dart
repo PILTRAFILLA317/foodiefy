@@ -2,7 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:gif_view/gif_view.dart';
+import 'package:gif/gif.dart';
 
 import 'package:foodiefy/utils/lottie_rules.dart';
 
@@ -147,25 +147,57 @@ class StepDetailScreen extends StatefulWidget {
   State<StepDetailScreen> createState() => _StepDetailScreenState();
 }
 
-class _StepDetailScreenState extends State<StepDetailScreen> {
+class _StepDetailScreenState extends State<StepDetailScreen>
+    with SingleTickerProviderStateMixin {
   late int currentIndex;
   late List<String> _selectedAssets;
+  late GifController _gifController;
+  static const Duration _defaultGifLoop = Duration(milliseconds: 2000);
+  bool _isGifReady = false;
+  int _gifInstance = 0;
+
+  void _prepareForNewAsset() {
+    _gifController.stop();
+    _gifController.value = 0;
+  }
+
+  void _restartPlayback({bool immediate = false}) {
+    void start() {
+      if (!mounted || _selectedAssets.isEmpty || !_isGifReady) return;
+      _gifController.stop();
+      _gifController.value = 0;
+      _gifController.repeat(min: 0, max: 1, period: _defaultGifLoop);
+    }
+
+    if (immediate) {
+      start();
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) => start());
+    }
+  }
 
   @override
   void initState() {
     super.initState();
     currentIndex = widget.initialIndex;
     _selectedAssets = _computeLottieSequence(widget.steps);
+    _gifController = GifController(vsync: this);
+    _prepareForNewAsset();
   }
 
   @override
   void didUpdateWidget(covariant StepDetailScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!listEquals(oldWidget.steps, widget.steps)) {
-      _selectedAssets = _computeLottieSequence(widget.steps);
-      if (currentIndex >= widget.steps.length) {
-        currentIndex = widget.steps.isEmpty ? 0 : widget.steps.length - 1;
-      }
+      setState(() {
+        _selectedAssets = _computeLottieSequence(widget.steps);
+        if (currentIndex >= widget.steps.length) {
+          currentIndex = widget.steps.isEmpty ? 0 : widget.steps.length - 1;
+        }
+        _isGifReady = false;
+        _gifInstance++;
+      });
+      _prepareForNewAsset();
     }
   }
 
@@ -173,7 +205,10 @@ class _StepDetailScreenState extends State<StepDetailScreen> {
     if (currentIndex > 0) {
       setState(() {
         currentIndex--;
+        _isGifReady = false;
+        _gifInstance++;
       });
+      _prepareForNewAsset();
     }
   }
 
@@ -181,15 +216,24 @@ class _StepDetailScreenState extends State<StepDetailScreen> {
     if (currentIndex < widget.steps.length - 1) {
       setState(() {
         currentIndex++;
+        _isGifReady = false;
+        _gifInstance++;
       });
+      _prepareForNewAsset();
     }
+  }
+
+  @override
+  void dispose() {
+    _gifController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final stepText = widget.steps[currentIndex];
     final lottieAsset = _selectedAssets[currentIndex];
-
+  
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -236,11 +280,34 @@ class _StepDetailScreenState extends State<StepDetailScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  GifView.asset(
-                    lottieAsset,
+                  SizedBox(
+                    key: ValueKey('$lottieAsset-$_gifInstance'),
                     height: 220,
                     width: 220,
-                    frameRate: 60,
+                    child: AnimatedOpacity(
+                      opacity: _isGifReady ? 1 : 0,
+                      duration: const Duration(milliseconds: 250),
+                      child: Gif(
+                        key: ValueKey(_gifInstance),
+                        image: AssetImage(lottieAsset),
+                        controller: _gifController,
+                        autostart: Autostart.no,
+                        placeholder: (context) => const SizedBox.shrink(),
+                        onFetchCompleted: () {
+                          if (!mounted) return;
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (!mounted) return;
+                            final alreadyReady = _isGifReady;
+                            if (!alreadyReady) {
+                              setState(() {
+                                _isGifReady = true;
+                              });
+                            }
+                            _restartPlayback(immediate: true);
+                          });
+                        },
+                      ),
+                    ),
                   ),
                 ],
               ),

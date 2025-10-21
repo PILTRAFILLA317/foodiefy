@@ -40,7 +40,7 @@ dependencies:
   flutter_svg: ^2.2.0
   fl_chart: ^1.0.0
   animations: ^2.0.11
-  gif_view: ^1.0.3
+  gif: ^2.3.0
 
 dev_dependencies:
   flutter_test:
@@ -67,7 +67,7 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/instagram_icon.svg
-    - assets/apngs/
+    - assets/gifs/
     - assets/youtube_icon.svg
     - assets/facebook_icon.svg
     - assets/tiktok_icon.svg
