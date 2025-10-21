@@ -20,6 +20,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   List<RecipeCollection> _collections = [];
   List<Recipe> _allRecipes = [];
+  List<RecipeCollection> _filteredCollections = [];
+  String _collectionQuery = '';
 
   @override
   void initState() {
@@ -32,6 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final collections = await CollectionService().getCollections();
     setState(() {
       _collections = collections;
+      _applyCollectionFilter();
     });
   }
 
@@ -39,6 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final recipes = await StorageService.getRecipes();
     setState(() {
       _allRecipes = recipes;
+      _applyCollectionFilter();
     });
   }
 
@@ -88,8 +92,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               onChanged: (value) {
-                // Implement search logic here
-                print('Search: $value');
+                setState(() {
+                  _collectionQuery = value;
+                  _applyCollectionFilter();
+                });
               },
             ),
             const SizedBox(height: 16),
@@ -101,10 +107,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   mainAxisSpacing: 16,
                   childAspectRatio: 0.75,
                 ),
-                itemCount:
-                    _collections.length + 1,
+                itemCount: _filteredCollections.length +
+                    (_collectionQuery.trim().isEmpty ? 1 : 0),
                 itemBuilder: (context, index) {
-                  if (index == 0) {
+                  final showMasterCard = _collectionQuery.trim().isEmpty;
+                  if (showMasterCard && index == 0) {
                     // "Todas las recetas" card
                     final allRecipesCollection = RecipeCollection(
                       createdAt: DateTime.now(),
@@ -137,7 +144,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     );
                   }
                   // Other collections
-                  final collection = _collections[index - 1];
+                  final relativeIndex = index - (showMasterCard ? 1 : 0);
+                  final collection = _filteredCollections[relativeIndex];
                   return CollectionCard(
                     collection: collection,
                     onTap: () async {
@@ -158,7 +166,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                     onDelete: () async {
                       await CollectionService().deleteCollection(collection);
-                      _loadCollections();
+                      await _loadCollections();
                     },
                   );
                 },
@@ -340,6 +348,34 @@ class _HomeScreenState extends State<HomeScreen> {
       _loadCollections(),
       _loadAllRecipes(),
     ]);
+    if (_collectionQuery.isNotEmpty) {
+      setState(_applyCollectionFilter);
+    }
+  }
+
+  void _applyCollectionFilter() {
+    final query = _collectionQuery.trim().toLowerCase();
+    final recipeLookup = {
+      for (final recipe in _allRecipes) recipe.id: recipe,
+    };
+
+    if (query.isEmpty) {
+      _filteredCollections = _collections
+          .where((collection) => !collection.isMaster)
+          .toList();
+      return;
+    }
+
+    _filteredCollections = _collections
+        .where((collection) => !collection.isMaster)
+        .where((collection) =>
+            collection.name.toLowerCase().contains(query) ||
+            collection.recipeIds.any((id) {
+              final recipe = recipeLookup[id];
+              if (recipe == null) return false;
+              return recipe.title.toLowerCase().contains(query);
+            }))
+        .toList();
   }
 
   void _showCollectionCreationDialog() {

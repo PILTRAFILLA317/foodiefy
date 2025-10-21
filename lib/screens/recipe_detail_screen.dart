@@ -82,7 +82,7 @@ class RecipeDetailScreen extends StatelessWidget {
         child: Image(
           image: provider,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _buildPlaceholderImage(),
+          errorBuilder: (_, _, _) => _buildPlaceholderImage(),
         ),
       );
     }

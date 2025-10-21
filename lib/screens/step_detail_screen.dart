@@ -1,4 +1,137 @@
+import 'dart:math';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:gif_view/gif_view.dart';
+
+import 'package:foodiefy/utils/lottie_rules.dart';
+
+String _normalizeStepText(String input) {
+  var normalized = input.toLowerCase();
+  const replacements = {
+    'á': 'a',
+    'ä': 'a',
+    'à': 'a',
+    'â': 'a',
+    'é': 'e',
+    'ë': 'e',
+    'è': 'e',
+    'ê': 'e',
+    'í': 'i',
+    'ï': 'i',
+    'ì': 'i',
+    'î': 'i',
+    'ó': 'o',
+    'ö': 'o',
+    'ò': 'o',
+    'ô': 'o',
+    'ú': 'u',
+    'ü': 'u',
+    'ù': 'u',
+    'û': 'u',
+    'ñ': 'n',
+  };
+
+  replacements.forEach((original, replacement) {
+    normalized = normalized.replaceAll(original, replacement);
+  });
+
+  return normalized;
+}
+
+final _random = Random();
+
+String _selectLottieForStep(String stepText, {String? previousAsset}) {
+  final normalized = _normalizeStepText(stepText);
+  final tokens = normalized
+      .split(RegExp(r'[^a-z0-9]+'))
+      .where((token) => token.isNotEmpty)
+      .toList();
+  final tokenSet = tokens.toSet();
+
+  final matchedAssets = <String>{};
+
+  bool matchesKeyword(String keyword) {
+    final normalizedKeyword = _normalizeStepText(
+      keyword,
+    ).replaceAll(RegExp(r'[^a-z0-9]+'), ' ');
+    final parts = normalizedKeyword
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList();
+
+    if (parts.isEmpty) {
+      return false;
+    }
+
+    if (parts.length == 1) {
+      return tokenSet.contains(parts.first);
+    }
+
+    final window = parts.length;
+    for (var i = 0; i <= tokens.length - window; i++) {
+      var matches = true;
+      for (var j = 0; j < window; j++) {
+        if (tokens[i + j] != parts[j]) {
+          matches = false;
+          break;
+        }
+      }
+      if (matches) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  for (final rule in lottieRules) {
+    final hasMatch = rule.keywords.any(matchesKeyword);
+    if (hasMatch) {
+      // print('Rule matched: ${rule.asset}');
+      matchedAssets.add(rule.asset);
+    }
+  }
+  // print('Step matched: $stepText');
+
+  if (matchedAssets.isNotEmpty) {
+    final candidates = matchedAssets
+        .where((asset) => asset != previousAsset)
+        .toList();
+
+    if (candidates.isNotEmpty) {
+      return candidates[_random.nextInt(candidates.length)];
+    }
+
+    final allMatches = matchedAssets.toList();
+    return allMatches[_random.nextInt(allMatches.length)];
+  }
+
+  final fallbackCandidates = fallbackAnimations
+      .where((asset) => asset != previousAsset)
+      .toList();
+
+  if (fallbackCandidates.isNotEmpty) {
+    return fallbackCandidates[_random.nextInt(fallbackCandidates.length)];
+  }
+
+  return fallbackAnimations.isNotEmpty
+      ? fallbackAnimations[_random.nextInt(fallbackAnimations.length)]
+      : defaultAnimationAsset;
+}
+
+List<String> _computeLottieSequence(List<String> steps) {
+  final assets = <String>[];
+  String? previous;
+
+  for (final step in steps) {
+    final asset = _selectLottieForStep(step, previousAsset: previous);
+    assets.add(asset);
+    previous = asset;
+  }
+
+  return assets;
+}
 
 class StepDetailScreen extends StatefulWidget {
   final List<String> steps;
@@ -16,11 +149,24 @@ class StepDetailScreen extends StatefulWidget {
 
 class _StepDetailScreenState extends State<StepDetailScreen> {
   late int currentIndex;
+  late List<String> _selectedAssets;
 
   @override
   void initState() {
     super.initState();
     currentIndex = widget.initialIndex;
+    _selectedAssets = _computeLottieSequence(widget.steps);
+  }
+
+  @override
+  void didUpdateWidget(covariant StepDetailScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!listEquals(oldWidget.steps, widget.steps)) {
+      _selectedAssets = _computeLottieSequence(widget.steps);
+      if (currentIndex >= widget.steps.length) {
+        currentIndex = widget.steps.isEmpty ? 0 : widget.steps.length - 1;
+      }
+    }
   }
 
   void _goToPrevious() {
@@ -42,6 +188,7 @@ class _StepDetailScreenState extends State<StepDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final stepText = widget.steps[currentIndex];
+    final lottieAsset = _selectedAssets[currentIndex];
 
     return Scaffold(
       appBar: AppBar(
@@ -79,16 +226,25 @@ class _StepDetailScreenState extends State<StepDetailScreen> {
               ),
             ),
             const SizedBox(height: 32),
+            Text(
+              stepText,
+              style: const TextStyle(fontSize: 22),
+              textAlign: TextAlign.center,
+            ),
             Expanded(
-              child: SingleChildScrollView(
-                child: Text(
-                  stepText,
-                  style: const TextStyle(fontSize: 22),
-                  textAlign: TextAlign.center,
-                ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  GifView.asset(
+                    lottieAsset,
+                    height: 220,
+                    width: 220,
+                    frameRate: 60,
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 32),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
