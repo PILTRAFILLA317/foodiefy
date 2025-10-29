@@ -8,7 +8,8 @@ import 'package:foodiefy/screens/collection_detail_screen.dart';
 import 'package:foodiefy/screens/create_recipe_screen.dart';
 import 'package:foodiefy/screens/import_recipe_screen.dart';
 import 'package:foodiefy/services/collection_service.dart';
-import 'package:foodiefy/services/storage_service.dart'; // Asegúrate de importar
+import 'package:foodiefy/services/storage_service.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -22,6 +23,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Recipe> _allRecipes = [];
   List<RecipeCollection> _filteredCollections = [];
   String _collectionQuery = '';
+  String assetName = 'assets/foodtext_svg.svg';
 
   @override
   void initState() {
@@ -51,7 +53,20 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: false,
-        title: const Text('Foodiefy'),
+        title: const Text(
+          'Foodiefy',
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+            fontSize: 24,
+          ),
+        ),
+        // title: SvgPicture.asset(
+        //   assetName,
+        //   height: 28,
+        //   colorFilter:
+        //       const ColorFilter.mode(Colors.black, BlendMode.srcIn),
+        // ),
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.white,
         actions: [
@@ -107,7 +122,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   mainAxisSpacing: 16,
                   childAspectRatio: 0.75,
                 ),
-                itemCount: _filteredCollections.length +
+                itemCount:
+                    _filteredCollections.length +
                     (_collectionQuery.trim().isEmpty ? 1 : 0),
                 itemBuilder: (context, index) {
                   final showMasterCard = _collectionQuery.trim().isEmpty;
@@ -223,10 +239,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 20),
                 const Text(
                   'Añadir receta',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 16),
                 _buildAddRecipeOption(
@@ -256,9 +269,7 @@ class _HomeScreenState extends State<HomeScreen> {
     } else if (result == 'import') {
       final importedRecipe = await Navigator.push<Recipe?>(
         context,
-        MaterialPageRoute(
-          builder: (_) => const ImportRecipeScreen(),
-        ),
+        MaterialPageRoute(builder: (_) => const ImportRecipeScreen()),
       );
       if (importedRecipe != null) {
         await _onRecipeCreated(importedRecipe);
@@ -307,10 +318,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey,
-                    ),
+                    style: const TextStyle(fontSize: 13, color: Colors.grey),
                   ),
                 ],
               ),
@@ -325,9 +333,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _navigateToCreateRecipe({Recipe? template}) async {
     final recipe = await Navigator.push<Recipe?>(
       context,
-      MaterialPageRoute(
-        builder: (_) => CreateRecipeScreen(template: template),
-      ),
+      MaterialPageRoute(builder: (_) => CreateRecipeScreen(template: template)),
     );
     if (recipe != null) {
       await _onRecipeCreated(recipe);
@@ -344,10 +350,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       );
     }
-    await Future.wait([
-      _loadCollections(),
-      _loadAllRecipes(),
-    ]);
+    await Future.wait([_loadCollections(), _loadAllRecipes()]);
     if (_collectionQuery.isNotEmpty) {
       setState(_applyCollectionFilter);
     }
@@ -355,9 +358,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _applyCollectionFilter() {
     final query = _collectionQuery.trim().toLowerCase();
-    final recipeLookup = {
-      for (final recipe in _allRecipes) recipe.id: recipe,
-    };
+    final recipeLookup = {for (final recipe in _allRecipes) recipe.id: recipe};
 
     if (query.isEmpty) {
       _filteredCollections = _collections
@@ -368,13 +369,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
     _filteredCollections = _collections
         .where((collection) => !collection.isMaster)
-        .where((collection) =>
-            collection.name.toLowerCase().contains(query) ||
-            collection.recipeIds.any((id) {
-              final recipe = recipeLookup[id];
-              if (recipe == null) return false;
-              return recipe.title.toLowerCase().contains(query);
-            }))
+        .where(
+          (collection) =>
+              collection.name.toLowerCase().contains(query) ||
+              collection.recipeIds.any((id) {
+                final recipe = recipeLookup[id];
+                if (recipe == null) return false;
+                return recipe.title.toLowerCase().contains(query);
+              }),
+        )
         .toList();
   }
 
