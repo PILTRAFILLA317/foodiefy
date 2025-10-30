@@ -27,6 +27,124 @@ class ImportLoadingResult {
   bool get hasError => errorMessage != null;
 }
 
+class ImportErrorScreen extends StatefulWidget {
+  final String message;
+
+  const ImportErrorScreen({super.key, required this.message});
+
+  @override
+  State<ImportErrorScreen> createState() => _ImportErrorScreenState();
+}
+
+class _ImportErrorScreenState extends State<ImportErrorScreen>
+    with SingleTickerProviderStateMixin {
+  static const Duration _gifPeriod = Duration(milliseconds: 1800);
+  late final GifController _gifController;
+
+  @override
+  void initState() {
+    super.initState();
+    _gifController = GifController(vsync: this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _gifController
+        ..value = 0
+        ..repeat(min: 0, max: 1, period: _gifPeriod);
+    });
+  }
+
+  @override
+  void dispose() {
+    _gifController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('No pudimos importar la receta'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        surfaceTintColor: Colors.white,
+        elevation: 0,
+      ),
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Spacer(),
+              SizedBox(
+                height: 220,
+                width: 220,
+                child: Gif(
+                  image: const AssetImage('assets/gifs/error.gif'),
+                  controller: _gifController,
+                  autostart: Autostart.no,
+                ),
+              ),
+              const SizedBox(height: 28),
+              Text(
+                widget.message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Asegúrate de que:',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Text(
+                      '• El video contiene una receta.',
+                      style: TextStyle(fontSize: 15),
+                    ),
+                    SizedBox(height: 6),
+                    Text(
+                      '• Los pasos e ingredientes están mencionados en el vídeo o la descripción.',
+                      style: TextStyle(fontSize: 15),
+                    ),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: const Text('Entendido'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class ImportLoadingScreen extends StatefulWidget {
   final String url;
   final ImportRecipeService service;
@@ -43,8 +161,9 @@ class ImportLoadingScreen extends StatefulWidget {
 
 class _ImportLoadingScreenState extends State<ImportLoadingScreen>
     with SingleTickerProviderStateMixin {
-  static const Duration _cycleDuration = Duration(seconds: 2);
+  static const Duration _cycleDuration = Duration(seconds: 4);
   static const Duration _gifPeriod = Duration(milliseconds: 1800);
+  static const Duration _fadeDuration = Duration(milliseconds: 400);
   final Random _random = Random();
   final List<String> _messages = const [
     'Preparando ingredientes...',
@@ -61,22 +180,24 @@ class _ImportLoadingScreenState extends State<ImportLoadingScreen>
   String? _currentGif;
   GifController? _gifController;
   int _gifInstance = 0;
+  int _visualSequence = 0;
+  bool _visualVisible = false;
   bool _completed = false;
 
   @override
   void initState() {
     super.initState();
     _gifController = GifController(vsync: this);
-    _advanceVisuals(initial: true);
-    _timer = Timer.periodic(_cycleDuration, (_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      _advanceVisuals();
+      _scheduleVisualChange(initial: true);
+      _startImport();
     });
-    WidgetsBinding.instance.addPostFrameCallback((_) => _startImport());
   }
 
   @override
   void dispose() {
+    _visualSequence++;
     _timer?.cancel();
     _gifController?.dispose();
     super.dispose();
@@ -131,22 +252,58 @@ class _ImportLoadingScreenState extends State<ImportLoadingScreen>
       ..repeat(min: 0, max: 1, period: _gifPeriod);
   }
 
-  void _advanceVisuals({bool initial = false}) {
+  void _scheduleVisualChange({bool initial = false}) {
     final nextMessage = _chooseMessage(initial: initial);
     final nextGif = _chooseGif(initial: initial);
-    final gifChanged = nextGif != _currentGif;
+    final token = ++_visualSequence;
+    final imageProvider = AssetImage(nextGif);
 
-    setState(() {
-      _currentMessage = nextMessage;
-      if (gifChanged || initial) {
+    if (!initial) {
+      setState(() => _visualVisible = false);
+    }
+
+    Future<void> loader;
+    try {
+      loader = precacheImage(imageProvider, context);
+    } catch (_) {
+      loader = Future<void>.value();
+    }
+
+    loader.then((_) {
+      if (!mounted || token != _visualSequence) return;
+      setState(() {
+        _currentMessage = nextMessage;
         _currentGif = nextGif;
         _gifInstance++;
-      }
-    });
-
-    if (gifChanged || initial) {
+      });
       _restartGifPlayback();
-    }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || token != _visualSequence) return;
+        setState(() => _visualVisible = true);
+        _timer?.cancel();
+        _timer = Timer(_cycleDuration, () {
+          if (!mounted) return;
+          _scheduleVisualChange();
+        });
+      });
+    }).catchError((_) {
+      if (!mounted || token != _visualSequence) return;
+      setState(() {
+        _currentMessage = nextMessage;
+        _currentGif = 'assets/gifs/kitchen.gif';
+        _gifInstance++;
+      });
+      _restartGifPlayback();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || token != _visualSequence) return;
+        setState(() => _visualVisible = true);
+        _timer?.cancel();
+        _timer = Timer(_cycleDuration, () {
+          if (!mounted) return;
+          _scheduleVisualChange();
+        });
+      });
+    });
   }
 
   Future<void> _startImport() async {
@@ -165,6 +322,7 @@ class _ImportLoadingScreenState extends State<ImportLoadingScreen>
   void _complete(ImportLoadingResult result) {
     if (_completed) return;
     _completed = true;
+    _visualSequence++;
     _timer?.cancel();
     if (!mounted) {
       return;
@@ -187,40 +345,53 @@ class _ImportLoadingScreenState extends State<ImportLoadingScreen>
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const Spacer(),
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 350),
-                transitionBuilder: (child, animation) => FadeTransition(
-                  opacity: animation,
-                  child: child,
-                ),
-                child: SizedBox(
-                  key: ValueKey('gif-$_gifInstance-$gifAsset'),
-                  height: 220,
-                  width: 220,
-                  child: _gifController == null
-                      ? const SizedBox.shrink()
-                      : Gif(
-                          image: AssetImage(gifAsset),
-                          controller: _gifController!,
-                          autostart: Autostart.no,
-                        ),
+              AnimatedOpacity(
+                key: ValueKey('gif-$_gifInstance'),
+                opacity: _visualVisible ? 1 : 0,
+                duration: _fadeDuration,
+                curve: Curves.easeInOut,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  transitionBuilder: (child, animation) => FadeTransition(
+                    opacity: animation,
+                    child: child,
+                  ),
+                  child: SizedBox(
+                    key: ValueKey('gif-$_gifInstance-$gifAsset'),
+                    height: 220,
+                    width: 220,
+                    child: _gifController == null || _currentGif == null
+                        ? const SizedBox.shrink()
+                        : Gif(
+                            image: AssetImage(gifAsset),
+                            controller: _gifController!,
+                            autostart: Autostart.no,
+                          ),
+                  ),
                 ),
               ),
               const SizedBox(height: 32),
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 250),
-                transitionBuilder: (child, animation) => FadeTransition(
-                  opacity: animation,
-                  child: child,
-                ),
-                child: Text(
-                  message,
-                  key: ValueKey(message),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
+              AnimatedOpacity(
+                opacity: _visualVisible ? 1 : 0,
+                duration: _fadeDuration,
+                curve: Curves.easeInOut,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 250),
+                  transitionBuilder: (child, animation) => FadeTransition(
+                    opacity: animation,
+                    child: child,
                   ),
+                  child: message.isEmpty
+                      ? const SizedBox.shrink()
+                      : Text(
+                          message,
+                          key: ValueKey(message),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(height: 12),
@@ -234,7 +405,7 @@ class _ImportLoadingScreenState extends State<ImportLoadingScreen>
               ),
               const Spacer(),
               // const LinearProgressIndicator(minHeight: 4),
-              LoadingAnimationWidget.inkDrop(
+              LoadingAnimationWidget.fourRotatingDots(
                 color: Colors.orange,
                 size: 50,
               ),
@@ -297,7 +468,13 @@ class _ImportRecipeScreenState extends State<ImportRecipeScreen> {
 
     final errorMessage = result.errorMessage;
     if (errorMessage != null) {
-      setState(() => _errorMessage = errorMessage);
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          fullscreenDialog: true,
+          builder: (_) => ImportErrorScreen(message: errorMessage),
+        ),
+      );
       return;
     }
 
