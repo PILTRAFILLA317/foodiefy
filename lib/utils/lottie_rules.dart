@@ -18,660 +18,677 @@ const List<String> fallbackAnimations = [
 final List<LottieRule> lottieRules = _buildLottieRules();
 
 List<LottieRule> _buildLottieRules() => [
-  LottieRule('assets/gifs/apple-pie.gif', _keywords([
-    'apple pie',
-    'apple',
-    'manzana',
-    'tarta',
-    'pastel',
-    'pie',
-    'postre de manzana',
-    'apple dessert',
-  ])),
-  LottieRule('assets/gifs/aubergine.gif', _keywords([
-    'berenjena',
-    'aubergine',
-    'eggplant',
-    'berenjenas asadas',
-  ])),
-  LottieRule('assets/gifs/avocado.gif', _keywords([
-    'avocado',
-    'aguacate',
-    'palta',
-    'guacamole',
-  ])),
-  LottieRule('assets/gifs/back-yard.gif', _keywords([
-    'patio',
-    'jardin',
-    'exterior',
-    'backyard',
-    'parrillada al aire libre',
-  ])),
-  LottieRule('assets/gifs/bake-cooker.gif', _keywords([
-    'hornea',
-    'hornear',
-    'horno',
-    'precalienta',
-    'precalentar',
-    'bake',
-    'cocer al horno',
-    'receta al horno',
-  ])),
-  LottieRule('assets/gifs/barbecue.gif', _keywords([
-    'barbacoa',
-    'barbecue',
-    'parrilla',
-    'asar a la parrilla',
-    'brasas al aire libre',
-  ])),
-  LottieRule('assets/gifs/basil.gif', _keywords([
-    'albahaca',
-    'basil',
-    'hierbas frescas',
-    'hojas aromaticas',
-  ])),
-  LottieRule('assets/gifs/blender.gif', _keywords([
-    'licua',
-    'licuado',
-    'licuadora',
-    'tritura',
-    'triturar',
-    'pure',
-    'batido',
-    'mezcla cremosa',
-  ])),
-  LottieRule('assets/gifs/bowl-chopsticks.gif', _keywords([
-    'bol con palillos',
-    'chopsticks',
-    'palillos',
-    'ramen',
-    'fideos',
-    'noodles bowl',
-  ])),
-  LottieRule('assets/gifs/bowl-of-soup.gif', _keywords([
-    'sopa',
-    'caldo',
-    'sopera',
-    'sopero',
-    'sopa caliente',
-  ])),
-  LottieRule('assets/gifs/burger-alt.gif', _keywords([
-    'hamburguesa',
-    'burger',
-    'sandwich de carne',
-    'cheeseburger',
-  ])),
-  LottieRule('assets/gifs/burger-hamburger.gif', _keywords([
-    'hamburguesa',
-    'burger',
-    'carne molida',
-    'hamburguesa casera',
-  ])),
-  LottieRule('assets/gifs/butter.gif', _keywords([
-    'mantequilla',
-    'butter',
-    'untar mantequilla',
-    'barra de mantequilla',
-  ])),
-  LottieRule('assets/gifs/charcoal.gif', _keywords([
-    'carbon',
-    'brasas',
-    'encender fuego',
-    'charcoal',
-    'fogata',
-  ])),
-  LottieRule('assets/gifs/cheese.gif', _keywords([
-    'queso',
-    'cheese',
-    'rallar queso',
-    'queso rallado',
-  ])),
-  LottieRule('assets/gifs/chopsticks.gif', _keywords([
-    'palillos',
-    'chopsticks',
-    'comer con palillos',
-    'utensilios asiaticos',
-  ])),
-  LottieRule('assets/gifs/cleaver-knife.gif', _keywords([
-    'cuchillo grande',
-    'hacha',
-    'cleaver',
-    'picar carne gruesa',
-    'cuchillo de carnicero',
-  ])),
-  LottieRule('assets/gifs/coconut.gif', _keywords([
-    'coco',
-    'coconut',
-    'leche de coco',
-    'ralladura de coco',
-  ])),
-  LottieRule('assets/gifs/coffee-machine.gif', _keywords([
-    'cafe',
-    'cafetera',
-    'coffee',
-    'espresso',
-    'taza de cafe',
-  ])),
-  LottieRule('assets/gifs/cooker-hood.gif', _keywords([
-    'campana',
-    'extractor',
-    'cocina ventilacion',
-    'campana extractora',
-  ])),
-  LottieRule('assets/gifs/cookies-milk.gif', _keywords([
-    'galletas y leche',
-    'merienda',
-    'cookies milk',
-    'snack dulce',
-  ])),
-  LottieRule('assets/gifs/cookies.gif', _keywords([
-    'galletas',
-    'cookies',
-    'hornear galletas',
-    'masa de galletas',
-  ])),
-  LottieRule('assets/gifs/cooking-apron.gif', _keywords([
-    'delantal',
-    'apron',
-    'ponte el delantal',
-    'ropa de cocina',
-  ])),
-  LottieRule('assets/gifs/corkscrew-wine.gif', _keywords([
-    'sacacorchos',
-    'vino',
-    'abrir botella',
-    'descorchar',
-  ])),
-  LottieRule('assets/gifs/corn-cob.gif', _keywords([
-    'maiz',
-    'mazorca',
-    'corn',
-    'elote',
-  ])),
-  LottieRule('assets/gifs/corn-dog.gif', _keywords([
-    'corn dog',
-    'perrito de maiz',
-    'hot dog de maiz',
-    'feria de comida',
-  ])),
-  LottieRule('assets/gifs/culinary-and-heritage-expeditions.gif', _keywords([
-    'expedicion',
-    'aventura culinaria',
-    'heritage',
-    'viaje gastronomico',
-    'ruta de sabores',
-  ])),
-  LottieRule('assets/gifs/donut.gif', _keywords([
-    'dona',
-    'donut',
-    'rosquilla',
-    'glaseado dulce',
-  ])),
-  LottieRule('assets/gifs/egg-tray.gif', _keywords([
-    'huevera',
-    'bandeja de huevos',
-    'egg tray',
-    'carton de huevos',
-  ])),
-  LottieRule('assets/gifs/eggs.gif', _keywords([
-    'huevo',
-    'huevos',
-    'rompe el huevo',
-    'huevos frescos',
-  ])),
-  LottieRule('assets/gifs/electric-stovetop.gif', _keywords([
-    'placa electrica',
-    'cocina electrica',
-    'stovetop',
-    'vitroceramica',
-    'placa de induccion',
-  ])),
-  LottieRule('assets/gifs/electric-teapot.gif', _keywords([
-    'hervidor',
-    'tetera electrica',
-    'electric kettle',
-    'te caliente',
-    'hervir agua',
-  ])),
-  LottieRule('assets/gifs/fastfood.gif', _keywords([
-    'comida rapida',
-    'fast food',
-    'combo',
-    'menu express',
-  ])),
-  LottieRule('assets/gifs/female-cook.gif', _keywords([
-    'cocinera',
-    'chef mujer',
-    'female cook',
-    'chef femenina',
-  ])),
-  LottieRule('assets/gifs/food-as-resources.gif', _keywords([
-    'suministros',
-    'provisiones',
-    'despensa',
-    'abastece',
-    'reserva de comida',
-  ])),
-  LottieRule('assets/gifs/food-plate-warm-cover.gif', _keywords([
-    'campana metalica',
-    'mantener caliente',
-    'servir cubierto',
-    'plato cubierto',
-  ])),
-  LottieRule('assets/gifs/food-truck.gif', _keywords([
-    'camioneta de comida',
-    'food truck',
-    'venta ambulante',
-    'camion gastronómico',
-  ])),
-  LottieRule('assets/gifs/fork-knife.gif', _keywords([
-    'tenedor y cuchillo',
-    'cubre mesa',
-    'cuberteria',
-    'set de cubiertos',
-  ])),
-  LottieRule('assets/gifs/french-fries-chips.gif', _keywords([
-    'patatas fritas',
-    'papas fritas',
-    'french fries',
-    'papas crujientes',
-  ])),
-  LottieRule('assets/gifs/french-macarons.gif', _keywords([
-    'macarons',
-    'macarrones franceses',
-    'dulce frances',
-    'postre elegante',
-  ])),
-  LottieRule('assets/gifs/fridge.gif', _keywords([
-    'nevera',
-    'refrigerar',
-    'frigorifico',
-    'enfria',
-    'refrigerador',
-  ])),
-  LottieRule('assets/gifs/fried-egg.gif', _keywords([
-    'huevo frito',
-    'fried egg',
-    'estrella huevo',
-    'yema dorada',
-  ])),
-  LottieRule('assets/gifs/fritters.gif', _keywords([
-    'buñuelos',
-    'fritters',
-    'freir masa',
-    'masa frita',
-  ])),
-  LottieRule('assets/gifs/garlic.gif', _keywords([
-    'ajo',
-    'garlic',
-    'ajos',
-    'diente de ajo',
-  ])),
-  LottieRule('assets/gifs/gas-burner.gif', _keywords([
-    'hervir',
-    'ebullicion',
-    'burbujea',
-    'fuego alto',
-    'llama viva',
-  ])),
-  LottieRule('assets/gifs/gas-stove.gif', _keywords([
-    'cocina de gas',
-    'fuego medio',
-    'gas',
-    'hornilla',
-  ])),
-  LottieRule('assets/gifs/gingerbread-man.gif', _keywords([
-    'pan de jengibre',
-    'gingerbread',
-    'galleta de jengibre',
-    'muñeco de jengibre',
-  ])),
-  LottieRule('assets/gifs/gluten-free.gif', _keywords([
-    'sin gluten',
-    'gluten free',
-    'celiaco',
-    'apto celiacos',
-  ])),
-  LottieRule('assets/gifs/herbs.gif', _keywords([
-    'hierbas',
-    'herbs',
-    'aromaticas',
-    'mezcla de hierbas',
-  ])),
-  LottieRule('assets/gifs/honey.gif', _keywords([
-    'miel',
-    'honey',
-    'endulza con miel',
-    'miel de abeja',
-  ])),
-  LottieRule('assets/gifs/hotdog.gif', _keywords([
-    'hotdog',
-    'perro caliente',
-    'pancho',
-    'hot dog con salsa',
-  ])),
-  LottieRule('assets/gifs/jam-jar.gif', _keywords([
-    'mermelada',
-    'confitura',
-    'jarra jam',
-    'frasco de mermelada',
-  ])),
-  LottieRule('assets/gifs/kitchen-scale.gif', _keywords([
-    'balanza',
-    'peso',
-    'kitchen scale',
-    'pesar ingredientes',
-    'precisión al pesar',
-  ])),
-  LottieRule('assets/gifs/kitchen.gif', _keywords([
-    'cocina',
-    'kitchen',
-    'espacio cocina',
-    'zona de coccion',
-  ])),
-  LottieRule('assets/gifs/knife.gif', _keywords([
-    'cortar',
-    'cuchillo',
-    'picar',
-    'trocear',
-    'juliana',
-    'rebanar',
-    'filetear verduras',
-  ])),
-  LottieRule('assets/gifs/ladle.gif', _keywords([
-    'cucharón',
-    'cucharon',
-    'ladle',
-    'servir sopa',
-    'cazo sopero',
-  ])),
-  LottieRule('assets/gifs/lobster.gif', _keywords([
-    'langosta',
-    'marisco',
-    'lobster',
-    'platillo gourmet',
-  ])),
-  LottieRule('assets/gifs/male-cook.gif', _keywords([
-    'cocinero',
-    'chef',
-    'male cook',
-    'chef masculino',
-  ])),
-  LottieRule('assets/gifs/meat-grinder.gif', _keywords([
-    'molino de carne',
-    'picadora',
-    'grinder',
-    'carne molida',
-    'maquina de picar',
-  ])),
-  LottieRule('assets/gifs/meat.gif', _keywords([
-    'carne',
-    'meat',
-    'proteina animal',
-    'corte de carne',
-  ])),
-  LottieRule('assets/gifs/microwave.gif', _keywords([
-    'microondas',
-    'calienta en microondas',
-    'recalentar',
-    'rapido en micro',
-  ])),
-  LottieRule('assets/gifs/milk.gif', _keywords([
-    'leche',
-    'milk',
-    'añade leche',
-    'vaso de leche',
-  ])),
-  LottieRule('assets/gifs/mixer.gif', _keywords([
-    'mezclar',
-    'batir',
-    'remover',
-    'mezclalo',
-    'combinar',
-    'incorporar',
-    'batido espumoso',
-  ])),
-  LottieRule('assets/gifs/mushrooms.gif', _keywords([
-    'hongos',
-    'setas',
-    'champinones',
-    'mushrooms',
-    'portobello',
-  ])),
-  LottieRule('assets/gifs/olives.gif', _keywords([
-    'aceitunas',
-    'olivas',
-    'olives',
-    'tapenade',
-  ])),
-  LottieRule('assets/gifs/onion.gif', _keywords([
-    'cebolla',
-    'onion',
-    'cortar cebolla',
-    'cebolla caramelizada',
-  ])),
-  LottieRule('assets/gifs/oven-mitt-glove-2.gif', _keywords([
-    'guantes horno',
-    'manopla',
-    'proteccion horno',
-    'guante térmico',
-  ])),
-  LottieRule('assets/gifs/oven-mitt-glove.gif', _keywords([
-    'manopla horno',
-    'guante cocina',
-    'protector de horno',
-  ])),
-  LottieRule('assets/gifs/pan.gif', _keywords([
-    'freir',
-    'sarten',
-    'plancha',
-    'saltear',
-    'dorar',
-    'salteado rapido',
-  ])),
-  LottieRule('assets/gifs/pan-meat-vegetables-cooking.gif', _keywords([
-    'saltear verduras',
-    'mezclar en sarten',
-    'cocinar carne y verduras',
-    'salteado mixto',
-  ])),
-  LottieRule('assets/gifs/pancakes.gif', _keywords([
-    'pancakes',
-    'panqueques',
-    'tortitas',
-    'crepes americanas',
-  ])),
-  LottieRule('assets/gifs/pastry-bag.gif', _keywords([
-    'manga pastelera',
-    'decorar',
-    'glasear',
-    'pastry bag',
-    'decoración fina',
-  ])),
-  LottieRule('assets/gifs/peanut-butter.gif', _keywords([
-    'mantequilla de mani',
-    'cacahuete',
-    'untar',
-    'peanut butter',
-    'crema de cacahuate',
-  ])),
-  LottieRule('assets/gifs/pepper.gif', _keywords([
-    'pimienta',
-    'pimentero',
-    'salpimentar',
-    'pepper',
-    'molinillo de pimienta',
-  ])),
-  LottieRule('assets/gifs/pizza-cutter.gif', _keywords([
-    'cortador de pizza',
-    'rueda de pizza',
-    'pizza cutter',
-    'cortar porciones',
-  ])),
-  LottieRule('assets/gifs/pizza.gif', _keywords([
-    'pizza',
-    'masa pizza',
-    'hornear pizza',
-    'pizzas artesanales',
-  ])),
-  LottieRule('assets/gifs/plant-based-steak.gif', _keywords([
-    'carne vegetal',
-    'plant based',
-    'proteina vegetal',
-    'filete vegano',
-  ])),
-  LottieRule('assets/gifs/plate-fork-knife.gif', _keywords([
-    'servir',
-    'emplatar',
-    'presentar plato',
-    'sirve',
-    'montaje de plato',
-  ])),
-  LottieRule('assets/gifs/plate-pasta.gif', _keywords([
-    'pasta',
-    'spaghetti',
-    'plato de pasta',
-    'pasta al dente',
-  ])),
-  LottieRule('assets/gifs/plate-warm.gif', _keywords([
-    'mantener caliente',
-    'cubrir plato',
-    'plate warmer',
-    'guardar calor',
-  ])),
-  LottieRule('assets/gifs/professional-chef-knife.gif', _keywords([
-    'cuchillo profesional',
-    'filetear',
-    'corte preciso',
-    'herramienta chef',
-  ])),
-  LottieRule('assets/gifs/risotto-rice-dish.gif', _keywords([
-    'risotto',
-    'arroz cremoso',
-    'plato de arroz',
-    'risotto italiano',
-  ])),
-  LottieRule('assets/gifs/rolling-pin.gif', _keywords([
-    'rodillo',
-    'estirar masa',
-    'rolling pin',
-    'extender masa',
-  ])),
-  LottieRule('assets/gifs/salt-pepper.gif', _keywords([
-    'salpimenta',
-    'sal y pimienta',
-    'seasoning',
-    'condimenta',
-  ])),
-  LottieRule('assets/gifs/salt.gif', _keywords([
-    'sal',
-    'sal marina',
-    'salar',
-    'sal cristal',
-    'sazonar con sal',
-  ])),
-  LottieRule('assets/gifs/sausage.gif', _keywords([
-    'salchicha',
-    'chorizo',
-    'sausage',
-    'embutido',
-  ])),
-  LottieRule('assets/gifs/scallops.gif', _keywords([
-    'vieiras',
-    'scallops',
-    'marisco suave',
-    'conchas finas',
-  ])),
-  LottieRule('assets/gifs/shortbread.gif', _keywords([
-    'galleta de mantequilla',
-    'shortbread',
-    'masa quebrada',
-    'galleta escocesa',
-  ])),
-  LottieRule('assets/gifs/shrimp.gif', _keywords([
-    'camaron',
-    'gamba',
-    'shrimp',
-    'langostino',
-  ])),
-  LottieRule('assets/gifs/spatula.gif', _keywords([
-    'espátula',
-    'espula',
-    'gira',
-    'spatula',
-    'utensilio para voltear',
-  ])),
-  LottieRule('assets/gifs/spinach.gif', _keywords([
-    'espinaca',
-    'spinach',
-    'verdura hoja verde',
-    'hojas de espinaca',
-  ])),
-  LottieRule('assets/gifs/steak.gif', _keywords([
-    'filete',
-    'steak',
-    'carne asada',
-    'bistec a la parrilla',
-  ])),
-  LottieRule('assets/gifs/sushi.gif', _keywords([
-    'sushi',
-    'nigiri',
-    'maki',
-    'rollo sushi',
-  ])),
-  LottieRule('assets/gifs/taco.gif', _keywords([
-    'taco',
-    'tortilla',
-    'mexicano',
-    'street taco',
-  ])),
-  LottieRule('assets/gifs/toast-sandwich.gif', _keywords([
-    'sandwich',
-    'sándwich',
-    'tostar sandwich',
-    'sandwich mixto',
-    'bocadillo caliente',
-  ])),
-  LottieRule('assets/gifs/toaster.gif', _keywords([
-    'tostar',
-    'tostador',
-    'tostadora',
-    'tostada',
-    'desayuno tostado',
-  ])),
-  LottieRule('assets/gifs/toque-cooking-hat.gif', _keywords([
-    'gorro de chef',
-    'toque',
-    'sombrero cocina',
-    'gorra de cocinero',
-  ])),
-  LottieRule('assets/gifs/turkey.gif', _keywords([
-    'pavo',
-    'turkey',
-    'hornear pavo',
-    'pavo relleno',
-  ])),
-  LottieRule('assets/gifs/vege.gif', _keywords([
-    'vegetales',
-    'verduras',
-    'vegetariano',
-    'veggie',
-    'mezcla de vegetales',
-  ])),
-  LottieRule('assets/gifs/waiter-restaurant.gif', _keywords([
-    'camarero',
-    'mesero',
-    'waiter',
-    'servicio sala',
-    'atencion de mesa',
-  ])),
-  LottieRule('assets/gifs/wok.gif', _keywords([
-    'wok',
-    'saltear',
-    'salteado asiatico',
-    'salteo',
-    'stir fry',
-  ])),
+  LottieRule(
+    'assets/gifs/apple-pie.gif',
+    _keywords([
+      'apple pie',
+      'apple',
+      'manzana',
+      'tarta',
+      'pastel',
+      'pie',
+      'postre de manzana',
+      'apple dessert',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/aubergine.gif',
+    _keywords(['berenjena', 'aubergine', 'eggplant', 'berenjenas asadas']),
+  ),
+  LottieRule(
+    'assets/gifs/avocado.gif',
+    _keywords(['avocado', 'aguacate', 'palta', 'guacamole']),
+  ),
+  LottieRule(
+    'assets/gifs/back-yard.gif',
+    _keywords([
+      'patio',
+      'jardin',
+      'exterior',
+      'backyard',
+      'parrillada al aire libre',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/bake-cooker.gif',
+    _keywords([
+      'hornea',
+      'hornear',
+      'horno',
+      'precalienta',
+      'precalentar',
+      'bake',
+      'cocer al horno',
+      'receta al horno',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/barbecue.gif',
+    _keywords([
+      'barbacoa',
+      'barbecue',
+      'parrilla',
+      'asar a la parrilla',
+      'brasas al aire libre',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/basil.gif',
+    _keywords(['albahaca', 'basil', 'hierbas frescas', 'hojas aromaticas']),
+  ),
+  LottieRule(
+    'assets/gifs/blender.gif',
+    _keywords([
+      'licua',
+      'licuado',
+      'licuadora',
+      'tritura',
+      'triturar',
+      'pure',
+      'batido',
+      'mezcla cremosa',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/bowl-chopsticks.gif',
+    _keywords([
+      'bol con palillos',
+      'chopsticks',
+      'palillos',
+      'ramen',
+      'fideos',
+      'noodles bowl',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/bowl-of-soup.gif',
+    _keywords(['sopa', 'caldo', 'sopera', 'sopero', 'sopa caliente']),
+  ),
+  LottieRule(
+    'assets/gifs/burger-alt.gif',
+    _keywords(['hamburguesa', 'burger', 'sandwich de carne', 'cheeseburger']),
+  ),
+  LottieRule(
+    'assets/gifs/burger-hamburger.gif',
+    _keywords(['hamburguesa', 'burger', 'carne molida', 'hamburguesa casera']),
+  ),
+  LottieRule(
+    'assets/gifs/butter.gif',
+    _keywords([
+      'mantequilla',
+      'butter',
+      'untar mantequilla',
+      'barra de mantequilla',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/charcoal.gif',
+    _keywords(['carbon', 'brasas', 'encender fuego', 'charcoal', 'fogata']),
+  ),
+  LottieRule(
+    'assets/gifs/cheese.gif',
+    _keywords(['queso', 'cheese', 'rallar queso', 'queso rallado']),
+  ),
+  LottieRule(
+    'assets/gifs/chopsticks.gif',
+    _keywords([
+      'palillos',
+      'chopsticks',
+      'comer con palillos',
+      'utensilios asiaticos',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/cleaver-knife.gif',
+    _keywords([
+      'cuchillo grande',
+      'hacha',
+      'cleaver',
+      'picar carne gruesa',
+      'cuchillo de carnicero',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/coconut.gif',
+    _keywords(['coco', 'coconut', 'leche de coco', 'ralladura de coco']),
+  ),
+  LottieRule(
+    'assets/gifs/coffee-machine.gif',
+    _keywords(['cafe', 'cafetera', 'coffee', 'espresso', 'taza de cafe']),
+  ),
+  LottieRule(
+    'assets/gifs/cooker-hood.gif',
+    _keywords([
+      'campana',
+      'extractor',
+      'cocina ventilacion',
+      'campana extractora',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/cookies-milk.gif',
+    _keywords(['galletas y leche', 'merienda', 'cookies milk', 'snack dulce']),
+  ),
+  LottieRule(
+    'assets/gifs/cookies.gif',
+    _keywords(['galletas', 'cookies', 'hornear galletas', 'masa de galletas']),
+  ),
+  LottieRule(
+    'assets/gifs/cooking-apron.gif',
+    _keywords(['delantal', 'apron', 'ponte el delantal', 'ropa de cocina']),
+  ),
+  LottieRule(
+    'assets/gifs/corkscrew-wine.gif',
+    _keywords(['sacacorchos', 'vino', 'abrir botella', 'descorchar']),
+  ),
+  LottieRule(
+    'assets/gifs/corn-cob.gif',
+    _keywords(['maiz', 'mazorca', 'corn', 'elote']),
+  ),
+  LottieRule(
+    'assets/gifs/corn-dog.gif',
+    _keywords([
+      'corn dog',
+      'perrito de maiz',
+      'hot dog de maiz',
+      'feria de comida',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/culinary-and-heritage-expeditions.gif',
+    _keywords([
+      'expedicion',
+      'aventura culinaria',
+      'heritage',
+      'viaje gastronomico',
+      'ruta de sabores',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/donut.gif',
+    _keywords(['dona', 'donut', 'rosquilla', 'glaseado dulce']),
+  ),
+  LottieRule(
+    'assets/gifs/egg-tray.gif',
+    _keywords(['huevera', 'bandeja de huevos', 'egg tray', 'carton de huevos']),
+  ),
+  LottieRule(
+    'assets/gifs/eggs.gif',
+    _keywords(['huevo', 'huevos', 'rompe el huevo', 'huevos frescos']),
+  ),
+  LottieRule(
+    'assets/gifs/electric-stovetop.gif',
+    _keywords([
+      'placa electrica',
+      'cocina electrica',
+      'stovetop',
+      'vitroceramica',
+      'placa de induccion',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/electric-teapot.gif',
+    _keywords([
+      'hervidor',
+      'tetera electrica',
+      'electric kettle',
+      'te caliente',
+      'hervir agua',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/fastfood.gif',
+    _keywords(['comida rapida', 'fast food', 'combo', 'menu express']),
+  ),
+  LottieRule(
+    'assets/gifs/female-cook.gif',
+    _keywords(['cocinera', 'chef mujer', 'female cook', 'chef femenina']),
+  ),
+  LottieRule(
+    'assets/gifs/food-as-resources.gif',
+    _keywords([
+      'suministros',
+      'provisiones',
+      'despensa',
+      'abastece',
+      'reserva de comida',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/food-plate-warm-cover.gif',
+    _keywords([
+      'campana metalica',
+      'mantener caliente',
+      'servir cubierto',
+      'plato cubierto',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/food-truck.gif',
+    _keywords([
+      'camioneta de comida',
+      'food truck',
+      'venta ambulante',
+      'camion gastronómico',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/fork-knife.gif',
+    _keywords([
+      'tenedor y cuchillo',
+      'cubre mesa',
+      'cuberteria',
+      'set de cubiertos',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/french-fries-chips.gif',
+    _keywords([
+      'patatas fritas',
+      'papas fritas',
+      'french fries',
+      'papas crujientes',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/french-macarons.gif',
+    _keywords([
+      'macarons',
+      'macarrones franceses',
+      'dulce frances',
+      'postre elegante',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/fridge.gif',
+    _keywords([
+      'nevera',
+      'refrigerar',
+      'frigorifico',
+      'enfria',
+      'refrigerador',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/fried-egg.gif',
+    _keywords(['huevo frito', 'fried egg', 'estrella huevo', 'yema dorada']),
+  ),
+  LottieRule(
+    'assets/gifs/fritters.gif',
+    _keywords(['buñuelos', 'fritters', 'freir masa', 'masa frita']),
+  ),
+  LottieRule(
+    'assets/gifs/garlic.gif',
+    _keywords(['ajo', 'garlic', 'ajos', 'diente de ajo']),
+  ),
+  LottieRule(
+    'assets/gifs/gas-burner.gif',
+    _keywords(['hervir', 'ebullicion', 'burbujea', 'fuego alto', 'llama viva']),
+  ),
+  LottieRule(
+    'assets/gifs/gas-stove.gif',
+    _keywords(['cocina de gas', 'fuego medio', 'gas', 'hornilla']),
+  ),
+  LottieRule(
+    'assets/gifs/gingerbread-man.gif',
+    _keywords([
+      'pan de jengibre',
+      'gingerbread',
+      'galleta de jengibre',
+      'muñeco de jengibre',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/gluten-free.gif',
+    _keywords(['sin gluten', 'gluten free', 'celiaco', 'apto celiacos']),
+  ),
+  LottieRule(
+    'assets/gifs/herbs.gif',
+    _keywords(['hierbas', 'herbs', 'aromaticas', 'mezcla de hierbas']),
+  ),
+  LottieRule(
+    'assets/gifs/honey.gif',
+    _keywords(['miel', 'honey', 'endulza con miel', 'miel de abeja']),
+  ),
+  LottieRule(
+    'assets/gifs/hotdog.gif',
+    _keywords(['hotdog', 'perro caliente', 'pancho', 'hot dog con salsa']),
+  ),
+  LottieRule(
+    'assets/gifs/jam-jar.gif',
+    _keywords(['mermelada', 'confitura', 'jarra jam', 'frasco de mermelada']),
+  ),
+  LottieRule(
+    'assets/gifs/kitchen-scale.gif',
+    _keywords([
+      'balanza',
+      'peso',
+      'kitchen scale',
+      'pesar ingredientes',
+      'precisión al pesar',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/kitchen.gif',
+    _keywords(['cocina', 'kitchen', 'espacio cocina', 'zona de coccion']),
+  ),
+  LottieRule(
+    'assets/gifs/knife.gif',
+    _keywords([
+      'cortar',
+      'cuchillo',
+      'picar',
+      'trocear',
+      'juliana',
+      'rebanar',
+      'filetear verduras',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/ladle.gif',
+    _keywords(['cucharón', 'cucharon', 'ladle', 'servir sopa', 'cazo sopero']),
+  ),
+  LottieRule(
+    'assets/gifs/lobster.gif',
+    _keywords(['langosta', 'marisco', 'lobster', 'platillo gourmet']),
+  ),
+  LottieRule(
+    'assets/gifs/male-cook.gif',
+    _keywords(['cocinero', 'chef', 'male cook', 'chef masculino']),
+  ),
+  LottieRule(
+    'assets/gifs/meat-grinder.gif',
+    _keywords([
+      'molino de carne',
+      'picadora',
+      'grinder',
+      'carne molida',
+      'maquina de picar',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/meat.gif',
+    _keywords(['carne', 'meat', 'proteina animal', 'corte de carne']),
+  ),
+  LottieRule(
+    'assets/gifs/microwave.gif',
+    _keywords([
+      'microondas',
+      'calienta en microondas',
+      'recalentar',
+      'rapido en micro',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/milk.gif',
+    _keywords(['leche', 'milk', 'añade leche', 'vaso de leche']),
+  ),
+  LottieRule(
+    'assets/gifs/mixer.gif',
+    _keywords([
+      'mezclar',
+      'batir',
+      'remover',
+      'mezclalo',
+      'combinar',
+      'incorporar',
+      'batido espumoso',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/mushrooms.gif',
+    _keywords(['hongos', 'setas', 'champinones', 'mushrooms', 'portobello']),
+  ),
+  LottieRule(
+    'assets/gifs/olives.gif',
+    _keywords(['aceitunas', 'olivas', 'olives', 'tapenade']),
+  ),
+  LottieRule(
+    'assets/gifs/onion.gif',
+    _keywords(['cebolla', 'onion', 'cortar cebolla', 'cebolla caramelizada']),
+  ),
+  LottieRule(
+    'assets/gifs/oven-mitt-glove-2.gif',
+    _keywords([
+      'guantes horno',
+      'manopla',
+      'proteccion horno',
+      'guante térmico',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/oven-mitt-glove.gif',
+    _keywords(['manopla horno', 'guante cocina', 'protector de horno']),
+  ),
+  LottieRule(
+    'assets/gifs/pan.gif',
+    _keywords([
+      'freir',
+      'sarten',
+      'plancha',
+      'saltear',
+      'dorar',
+      'salteado rapido',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/pancakes.gif',
+    _keywords(['pancakes', 'panqueques', 'tortitas', 'crepes americanas']),
+  ),
+  LottieRule(
+    'assets/gifs/pastry-bag.gif',
+    _keywords([
+      'manga pastelera',
+      'decorar',
+      'glasear',
+      'pastry bag',
+      'decoración fina',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/peanut-butter.gif',
+    _keywords([
+      'mantequilla de mani',
+      'cacahuete',
+      'untar',
+      'peanut butter',
+      'crema de cacahuate',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/pepper.gif',
+    _keywords([
+      'pimienta',
+      'pimentero',
+      'salpimentar',
+      'pepper',
+      'molinillo de pimienta',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/pizza-cutter.gif',
+    _keywords([
+      'cortador de pizza',
+      'rueda de pizza',
+      'pizza cutter',
+      'cortar porciones',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/pizza.gif',
+    _keywords(['pizza', 'masa pizza', 'hornear pizza', 'pizzas artesanales']),
+  ),
+  LottieRule(
+    'assets/gifs/plant-based-steak.gif',
+    _keywords([
+      'carne vegetal',
+      'plant based',
+      'proteina vegetal',
+      'filete vegano',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/plate-fork-knife.gif',
+    _keywords([
+      'servir',
+      'emplatar',
+      'presentar plato',
+      'sirve',
+      'montaje de plato',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/plate-pasta.gif',
+    _keywords(['pasta', 'spaghetti', 'plato de pasta', 'pasta al dente']),
+  ),
+  LottieRule(
+    'assets/gifs/plate-warm.gif',
+    _keywords([
+      'mantener caliente',
+      'cubrir plato',
+      'plate warmer',
+      'guardar calor',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/professional-chef-knife.gif',
+    _keywords([
+      'cuchillo profesional',
+      'filetear',
+      'corte preciso',
+      'herramienta chef',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/risotto-rice-dish.gif',
+    _keywords([
+      'risotto',
+      'arroz cremoso',
+      'plato de arroz',
+      'risotto italiano',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/rolling-pin.gif',
+    _keywords(['rodillo', 'estirar masa', 'rolling pin', 'extender masa']),
+  ),
+  LottieRule(
+    'assets/gifs/salt-pepper.gif',
+    _keywords(['salpimenta', 'sal y pimienta', 'seasoning', 'condimenta']),
+  ),
+  LottieRule(
+    'assets/gifs/salt.gif',
+    _keywords(['sal', 'sal marina', 'salar', 'sal cristal', 'sazonar con sal']),
+  ),
+  LottieRule(
+    'assets/gifs/sausage.gif',
+    _keywords(['salchicha', 'chorizo', 'sausage', 'embutido']),
+  ),
+  LottieRule(
+    'assets/gifs/scallops.gif',
+    _keywords(['vieiras', 'scallops', 'marisco suave', 'conchas finas']),
+  ),
+  LottieRule(
+    'assets/gifs/shortbread.gif',
+    _keywords([
+      'galleta de mantequilla',
+      'shortbread',
+      'masa quebrada',
+      'galleta escocesa',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/shrimp.gif',
+    _keywords(['camaron', 'gamba', 'shrimp', 'langostino']),
+  ),
+  LottieRule(
+    'assets/gifs/spatula.gif',
+    _keywords([
+      'espátula',
+      'espula',
+      'gira',
+      'spatula',
+      'utensilio para voltear',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/spinach.gif',
+    _keywords([
+      'espinaca',
+      'spinach',
+      'verdura hoja verde',
+      'hojas de espinaca',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/steak.gif',
+    _keywords(['filete', 'steak', 'carne asada', 'bistec a la parrilla']),
+  ),
+  LottieRule(
+    'assets/gifs/sushi.gif',
+    _keywords(['sushi', 'nigiri', 'maki', 'rollo sushi']),
+  ),
+  LottieRule(
+    'assets/gifs/taco.gif',
+    _keywords(['taco', 'tortilla', 'mexicano', 'street taco']),
+  ),
+  LottieRule(
+    'assets/gifs/toast-sandwich.gif',
+    _keywords([
+      'sandwich',
+      'sándwich',
+      'tostar sandwich',
+      'sandwich mixto',
+      'bocadillo caliente',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/toaster.gif',
+    _keywords([
+      'tostar',
+      'tostador',
+      'tostadora',
+      'tostada',
+      'desayuno tostado',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/toque-cooking-hat.gif',
+    _keywords([
+      'gorro de chef',
+      'toque',
+      'sombrero cocina',
+      'gorra de cocinero',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/turkey.gif',
+    _keywords(['pavo', 'turkey', 'hornear pavo', 'pavo relleno']),
+  ),
+  LottieRule(
+    'assets/gifs/vege.gif',
+    _keywords([
+      'vegetales',
+      'verduras',
+      'vegetariano',
+      'veggie',
+      'mezcla de vegetales',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/waiter-restaurant.gif',
+    _keywords([
+      'camarero',
+      'mesero',
+      'waiter',
+      'servicio sala',
+      'atencion de mesa',
+    ]),
+  ),
+  LottieRule(
+    'assets/gifs/wok.gif',
+    _keywords(['wok', 'saltear', 'salteado asiatico', 'salteo', 'stir fry']),
+  ),
 ];
 
 List<String> _keywords(List<String> base) {
@@ -728,7 +745,9 @@ Iterable<String> _pluralForms(String word) {
       variants.add('${word.substring(0, word.length - 1)}ces');
     }
     variants.add('${word}es');
-  } else if (word.endsWith('y') && word.length > 1 && _isConsonant(word[word.length - 2])) {
+  } else if (word.endsWith('y') &&
+      word.length > 1 &&
+      _isConsonant(word[word.length - 2])) {
     variants.add('${word.substring(0, word.length - 1)}ies');
   } else if (_isVowel(word[word.length - 1])) {
     variants.add('${word}s');
@@ -751,7 +770,7 @@ Iterable<String> _genderForms(String word) {
 
 bool _isVowel(String char) => 'aeiouáéíóú'.contains(char);
 
-bool _isConsonant(String char) => ! _isVowel(char);
+bool _isConsonant(String char) => !_isVowel(char);
 
 bool _endsWithAny(String word, List<String> endings) =>
     endings.any((ending) => word.endsWith(ending));

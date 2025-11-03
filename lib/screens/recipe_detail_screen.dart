@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'dart:io';
 import '../models/recipe.dart';
@@ -5,6 +6,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fl_chart/fl_chart.dart';
 
 import 'package:foodiefy/screens/step_detail_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class RecipeDetailScreen extends StatelessWidget {
   final Recipe recipe;
@@ -73,16 +75,54 @@ class RecipeDetailScreen extends StatelessWidget {
     );
   }
 
+  Future<void> _launchUrl() async {
+    final Uri url = Uri.parse(recipe.sourceUrl ?? '');
+    if (url == Uri.parse('')) {
+      return;
+    }
+    if (!await launchUrl(url)) {
+      throw Exception('Could not launch $url');
+    }
+  }
+
   Widget _buildImageSection() {
     final provider = _resolveImageProvider(recipe.imagePath);
     if (provider != null) {
-      return SizedBox(
-        height: 250,
-        width: double.infinity,
-        child: Image(
-          image: provider,
-          fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => _buildPlaceholderImage(),
+      return GestureDetector(
+        onTap: _launchUrl,
+        child: SizedBox(
+          height: 250,
+          width: double.infinity,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Image(
+                image: provider,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => _buildPlaceholderImage(),
+              ),
+              Align(
+                alignment: Alignment.bottomRight,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.6),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Padding(
+                      padding: EdgeInsets.all(8),
+                      child: Icon(
+                        Icons.play_arrow_rounded,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -164,6 +204,10 @@ class RecipeDetailScreen extends StatelessWidget {
                   ),
                 ],
               ),
+            ],
+            if (creatorInfo != null) ...[
+              const SizedBox(height: 4),
+              creatorInfo,
             ],
             if (recipe.isPublic) ...[
               const Icon(Icons.public, size: 16, color: Colors.green),
@@ -609,6 +653,9 @@ class RecipeDetailScreen extends StatelessWidget {
   }
 
   void _shareRecipe(BuildContext context) {
+    debugPrint(
+      '[share] source_url: ${recipe.sourceUrl ?? 'sin enlace de origen'}',
+    );
     // TODO: Implementar compartir receta
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Función de compartir próximamente')),

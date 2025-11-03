@@ -928,6 +928,7 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
         ingredients: _ingredients,
         steps: _steps,
         imagePath: _selectedImage?.path ?? _remoteImagePath,
+        sourceUrl: widget.template?.sourceUrl,
         isPublic: _isPublic,
         isImported: _isImportedSource,
         prepTimeMinutes: _prepTimeMinutes,

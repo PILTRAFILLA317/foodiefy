@@ -34,10 +34,16 @@ class ImportRecipeService {
       throw ImportRecipeException('La API no devolvió una receta válida');
     }
 
-    return _mapRecipeFromApi(recipeData);
+    return _mapRecipeFromApi(
+      recipeData,
+      sourceUrl: url,
+    );
   }
 
-  Recipe _mapRecipeFromApi(Map<String, dynamic> recipe) {
+  Recipe _mapRecipeFromApi(
+    Map<String, dynamic> recipe, {
+    String? sourceUrl,
+  }) {
     final title = recipe['titulo'] as String? ?? 'Receta importada';
     final description = recipe['descripcion'] as String?;
     final ingredients = _stringListFromDynamic(recipe['ingredientes']);
@@ -72,7 +78,8 @@ class ImportRecipeService {
       ingredients: ingredients,
       steps: steps,
       imagePath: imageUrl ?? thumbnail,
-      originalVideoUrl: originalUrl,
+  originalVideoUrl: originalUrl,
+  sourceUrl: sourceUrl ?? originalUrl,
       isImported: true,
       isPublic: false,
       prepTimeMinutes: prepTime,

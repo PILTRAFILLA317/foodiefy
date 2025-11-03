@@ -6,6 +6,7 @@ class Recipe {
   final List<String> steps;
   final String? imagePath;
   final String? originalVideoUrl;
+  final String? sourceUrl;
   final bool isPublic;
   final bool isImported;
   final int? prepTimeMinutes;
@@ -25,6 +26,7 @@ class Recipe {
     required this.steps,
     this.imagePath,
     this.originalVideoUrl,
+    this.sourceUrl,
     this.isPublic = false,
     this.isImported = false,
     this.prepTimeMinutes,
@@ -46,6 +48,7 @@ class Recipe {
       'steps': steps,
       'imagePath': imagePath,
       'originalVideoUrl': originalVideoUrl,
+      'sourceUrl': sourceUrl,
       'isPublic': isPublic,
       'isImported': isImported,
       'prepTimeMinutes': prepTimeMinutes,
@@ -68,6 +71,7 @@ class Recipe {
       steps: List<String>.from(json['steps']),
       imagePath: json['imagePath'],
       originalVideoUrl: json['originalVideoUrl'],
+      sourceUrl: json['sourceUrl'],
       isPublic: json['isPublic'] ?? false,
       isImported: json['isImported'] ?? false,
       prepTimeMinutes: json['prepTimeMinutes'],
@@ -99,10 +103,10 @@ class Recipe {
 
   String get formattedFinalQuantity {
     if (finalQuantity != null && finalQuantity!.trim().isNotEmpty) {
-      print(finalQuantity);
+      // print(finalQuantity);
       return finalQuantity!;
     }
-    print(finalQuantity);
+    // print(finalQuantity);
     return 'No especificado';
   }
 }

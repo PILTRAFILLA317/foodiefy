@@ -9,7 +9,8 @@ import 'package:foodiefy/screens/create_recipe_screen.dart';
 import 'package:foodiefy/screens/import_recipe_screen.dart';
 import 'package:foodiefy/services/collection_service.dart';
 import 'package:foodiefy/services/storage_service.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+
+import 'user_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -80,7 +81,12 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: const Icon(Icons.person, color: Colors.black),
             onPressed: () {
-              print('person button pressed');
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => UserScreen(savedRecipes: _allRecipes.length),
+                ),
+              );
             },
           ),
         ],
