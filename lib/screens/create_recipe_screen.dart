@@ -7,6 +7,7 @@ import '../models/recipe.dart';
 import '../services/recipe_service.dart';
 // import '../widgets/auth_required_dialog.dart';
 import '../widgets/time_picker_widget.dart';
+import 'package:uuid/uuid.dart';
 // import 'auth_placeholder_screen.dart';
 
 class CreateRecipeScreen extends StatefulWidget {
@@ -19,6 +20,7 @@ class CreateRecipeScreen extends StatefulWidget {
 }
 
 class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
+  String? _id;
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
@@ -47,6 +49,7 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
     _isImportedSource = template?.isImported ?? false;
 
     if (template != null) {
+      _id = template.id;
       _titleController.text = template.title;
       _descriptionController.text = template.description ?? '';
       _quantityController.text = template.finalQuantity ?? '';
@@ -917,7 +920,7 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
       final macros = _collectMacronutrients();
 
       final recipe = Recipe(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        id: _id ?? Uuid().v4(),
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim().isEmpty
             ? null

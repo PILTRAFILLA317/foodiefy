@@ -50,7 +50,6 @@ class _CollectionCreationDialogState extends State<CollectionCreationDialog> {
           child: const Text('Cancelar', style: TextStyle(color: Colors.black)),
         ),
         ElevatedButton(
-          // onPressed: _isLoading ? null : _importRecipe,
           onPressed: _isLoading
               ? null
               : () async {

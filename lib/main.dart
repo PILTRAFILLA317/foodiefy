@@ -9,7 +9,7 @@ Future<void> main() async {
     url: dotenv.env['SUPABASE_URL']!,
     anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
-  print('Supabase initialized with URL: ${dotenv.env['SUPABASE_URL']}');
+  // print('Supabase initialized with URL: ${dotenv.env['SUPABASE_URL']}');
   runApp(MyApp());
 }
 
@@ -22,7 +22,15 @@ class MyApp extends StatelessWidget {
       title: 'Foodiefy',
       theme: ThemeData(
         primarySwatch: Colors.orange,
+        secondaryHeaderColor: Colors.deepOrange,
         visualDensity: VisualDensity.adaptivePlatformDensity,
+        textSelectionTheme: const TextSelectionThemeData(
+          cursorColor: Colors.black,
+        ),
+        inputDecorationTheme: const InputDecorationTheme(
+          labelStyle: TextStyle(color: Colors.black),
+          floatingLabelStyle: TextStyle(color:Colors.black),
+        ),
       ),
       home: const HomeScreen(),
       debugShowCheckedModeBanner: false,

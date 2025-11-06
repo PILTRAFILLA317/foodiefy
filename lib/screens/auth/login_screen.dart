@@ -47,7 +47,9 @@ class _LoginScreenState extends State<LoginScreen> {
     } on AuthException catch (error) {
       setState(() => _errorMessage = error.message);
     } catch (_) {
-      setState(() => _errorMessage = 'No se pudo iniciar sesión. Intenta nuevamente.');
+      setState(
+        () => _errorMessage = 'No se pudo iniciar sesión. Intenta nuevamente.',
+      );
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
@@ -66,9 +68,9 @@ class _LoginScreenState extends State<LoginScreen> {
         redirectTo: kIsWeb ? null : 'io.supabase.foodiefy://login-callback',
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Redirigiendo a Google...')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Redirigiendo a Google...')));
       Navigator.of(context).pop(true);
     } on AuthException catch (error) {
       setState(() => _errorMessage = error.message);
@@ -107,7 +109,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       const Text(
                         'Bienvenido de nuevo',
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       const SizedBox(height: 12),
                       const Text(
@@ -172,7 +177,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       if (_errorMessage != null) ...[
                         Text(
                           _errorMessage!,
-                          style: const TextStyle(color: Colors.red, fontSize: 13),
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 13,
+                          ),
                         ),
                         const SizedBox(height: 12),
                       ],
@@ -190,7 +198,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             ? const SizedBox(
                                 height: 18,
                                 width: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               )
                             : const Text('Continuar'),
                       ),
@@ -199,7 +209,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         onPressed: _isSubmitting ? null : _signInWithGoogle,
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.black,
-                          side: const BorderSide(color: Colors.black, width: 1.5),
+                          side: const BorderSide(
+                            color: Colors.black,
+                            width: 1.5,
+                          ),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
@@ -223,7 +236,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                       ),
                                     );
                                   },
-                            child: const Text('Regístrate'),
+                            child: const Text(
+                              'Regístrate',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.orange,
+                              ),
+                            ),
                           ),
                         ],
                       ),

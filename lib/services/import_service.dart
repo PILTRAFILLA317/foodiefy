@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 
 import '../models/recipe.dart';
 
+// import 'package:uuid/uuid.dart';
+
 class ImportRecipeService {
   // ImportRecipeService({http.Client? client}) : _client = client ?? http.Client();
 
@@ -25,7 +27,7 @@ class ImportRecipeService {
         'Error ${response.statusCode} al contactar la API',
       );
     }
-
+    print('ImportRecipeService response: ${response.body}');
     final Map<String, dynamic> body =
         jsonDecode(response.body) as Map<String, dynamic>;
     final recipeData = body['recipe'];
@@ -34,16 +36,11 @@ class ImportRecipeService {
       throw ImportRecipeException('La API no devolvió una receta válida');
     }
 
-    return _mapRecipeFromApi(
-      recipeData,
-      sourceUrl: url,
-    );
+    return _mapRecipeFromApi(recipeData, sourceUrl: url);
   }
 
-  Recipe _mapRecipeFromApi(
-    Map<String, dynamic> recipe, {
-    String? sourceUrl,
-  }) {
+  Recipe _mapRecipeFromApi(Map<String, dynamic> recipe, {String? sourceUrl}) {
+    final id = recipe['id'] as String? ?? '';
     final title = recipe['titulo'] as String? ?? 'Receta importada';
     final description = recipe['descripcion'] as String?;
     final ingredients = _stringListFromDynamic(recipe['ingredientes']);
@@ -72,14 +69,14 @@ class ImportRecipeService {
         );
 
     return Recipe(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: id,
       title: title,
       description: description,
       ingredients: ingredients,
       steps: steps,
       imagePath: imageUrl ?? thumbnail,
-  originalVideoUrl: originalUrl,
-  sourceUrl: sourceUrl ?? originalUrl,
+      originalVideoUrl: originalUrl,
+      sourceUrl: sourceUrl ?? originalUrl,
       isImported: true,
       isPublic: false,
       prepTimeMinutes: prepTime,

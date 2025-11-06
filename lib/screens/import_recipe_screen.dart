@@ -309,6 +309,7 @@ class _ImportLoadingScreenState extends State<ImportLoadingScreen>
   Future<void> _startImport() async {
     try {
       final recipe = await widget.service.importRecipeFromUrl(widget.url);
+      debugPrint('Imported recipe: ${recipe.id}');
       _complete(ImportLoadingResult(recipe: recipe));
     } on ImportRecipeException catch (error) {
       _complete(ImportLoadingResult(errorMessage: error.message));
