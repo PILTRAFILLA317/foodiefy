@@ -122,13 +122,13 @@ class RecipeMacronutrients {
     this.fatPercentage,
   });
 
-  final int? totalKcal;
-  final int? carbsGrams;
-  final int? proteinGrams;
-  final int? fatGrams;
-  final int? carbsPercentage;
-  final int? proteinPercentage;
-  final int? fatPercentage;
+  final double? totalKcal;
+  final double? carbsGrams;
+  final double? proteinGrams;
+  final double? fatGrams;
+  final double? carbsPercentage;
+  final double? proteinPercentage;
+  final double? fatPercentage;
 
   Map<String, dynamic> toJson() {
     return {
@@ -144,23 +144,27 @@ class RecipeMacronutrients {
 
   factory RecipeMacronutrients.fromJson(Map<String, dynamic> json) {
     return RecipeMacronutrients(
-      totalKcal: _asInt(json['kcal_totales']),
-      carbsGrams: _asInt(json['carbohidratos_gramos']),
-      proteinGrams: _asInt(json['proteinas_gramos']),
-      fatGrams: _asInt(json['grasas_gramos']),
-      carbsPercentage: _asInt(json['carbohidratos_porcentaje']),
-      proteinPercentage: _asInt(json['proteinas_porcentaje']),
-      fatPercentage: _asInt(json['grasas_porcentaje']),
+      totalKcal: parseValue(json['kcal_totales']),
+      carbsGrams: parseValue(json['carbohidratos_gramos']),
+      proteinGrams: parseValue(json['proteinas_gramos']),
+      fatGrams: parseValue(json['grasas_gramos']),
+      carbsPercentage: parseValue(json['carbohidratos_porcentaje']),
+      proteinPercentage: parseValue(json['proteinas_porcentaje']),
+      fatPercentage: parseValue(json['grasas_porcentaje']),
     );
   }
 
-  static int? _asInt(dynamic value) {
-    if (value == null) return null;
-    if (value is int) return value;
-    if (value is double) return value.round();
-    if (value is String) return int.tryParse(value);
-    return null;
+  /// Unknown and invalid input stays unavailable; never invent or round nutrition.
+  static double? parseValue(dynamic value) {
+    final double? parsed = value is num
+        ? value.toDouble()
+        : value is String
+        ? double.tryParse(value.trim().replaceAll(',', '.'))
+        : null;
+    return parsed != null && parsed.isFinite && parsed >= 0 ? parsed : null;
   }
+
+  bool get hasAnyValue => totalKcal != null || hasGramValues || hasPercentages;
 
   bool get hasPercentages =>
       carbsPercentage != null ||

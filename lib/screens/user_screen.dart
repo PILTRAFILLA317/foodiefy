@@ -1,3 +1,6 @@
+import 'package:flutter/services.dart';
+import '../config/cloud_runtime.dart';
+import '../services/storage_service.dart';
 import 'package:flutter/material.dart';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -29,6 +32,29 @@ class _UserScreenState extends State<UserScreen> {
     _authStream = AuthService.authStateChanges();
   }
 
+  Future<void> _exportLegacy() async {
+    final json = await StorageService.exportLegacyJson();
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Exportación legacy'),
+        content: const Text(
+          'Copia el JSON con recetas y colecciones y guárdalo en un archivo privado. Incluye los registros originales sin modificarlos; las imágenes locales se referencian por su ruta.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: json));
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: const Text('Copiar JSON'),
+          ),
+        ],
+      ),
+    );
+  }
+
   int get _remainingRecipes {
     final remaining = UserScreen.freeRecipeLimit - _localSyncedRecipes;
     return remaining > 0 ? remaining : 0;
@@ -37,6 +63,27 @@ class _UserScreenState extends State<UserScreen> {
   @override
   Widget build(BuildContext context) {
     final remaining = _remainingRecipes;
+    if (!CloudRuntime.enabled) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Tu cuenta · Rescate local')),
+        body: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'Autenticación e importación cloud deshabilitadas. Tus recetas locales siguen disponibles.',
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: _exportLegacy,
+                child: const Text('Exportar datos legacy'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -59,8 +106,9 @@ class _UserScreenState extends State<UserScreen> {
                 return SingleChildScrollView(
                   padding: const EdgeInsets.all(24),
                   child: ConstrainedBox(
-                    constraints:
-                        BoxConstraints(minHeight: constraints.maxHeight),
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -70,7 +118,8 @@ class _UserScreenState extends State<UserScreen> {
                             radius: 52,
                             backgroundColor: Colors.grey.shade200,
                             child: Text(
-                              user?.email?.substring(0, 1).toUpperCase() ?? '🙂',
+                              user?.email?.substring(0, 1).toUpperCase() ??
+                                  '🙂',
                               style: const TextStyle(
                                 fontSize: 32,
                                 fontWeight: FontWeight.bold,
@@ -92,16 +141,20 @@ class _UserScreenState extends State<UserScreen> {
                           const Text(
                             'Regístrate o inicia sesión para sincronizarlas y acceder a ellas desde cualquier dispositivo.',
                             textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 15, color: Colors.black87),
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: Colors.black87,
+                            ),
                           ),
                           const SizedBox(height: 24),
                           ElevatedButton(
                             onPressed: () async {
-                              final result = await Navigator.of(context).push<bool>(
-                                MaterialPageRoute(
-                                  builder: (_) => const RegisterScreen(),
-                                ),
-                              );
+                              final result = await Navigator.of(context)
+                                  .push<bool>(
+                                    MaterialPageRoute(
+                                      builder: (_) => const RegisterScreen(),
+                                    ),
+                                  );
                               if (!context.mounted || result != true) return;
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
@@ -124,21 +177,27 @@ class _UserScreenState extends State<UserScreen> {
                           const SizedBox(height: 12),
                           OutlinedButton(
                             onPressed: () async {
-                              final result = await Navigator.of(context).push<bool>(
-                                MaterialPageRoute(
-                                  builder: (_) => const LoginScreen(),
-                                ),
-                              );
+                              final result = await Navigator.of(context)
+                                  .push<bool>(
+                                    MaterialPageRoute(
+                                      builder: (_) => const LoginScreen(),
+                                    ),
+                                  );
                               if (!context.mounted || result != true) return;
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content: Text('Sesión iniciada correctamente.'),
+                                  content: Text(
+                                    'Sesión iniciada correctamente.',
+                                  ),
                                 ),
                               );
                             },
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.black,
-                              side: const BorderSide(color: Colors.black, width: 1.5),
+                              side: const BorderSide(
+                                color: Colors.black,
+                                width: 1.5,
+                              ),
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
@@ -159,7 +218,10 @@ class _UserScreenState extends State<UserScreen> {
                           const Text(
                             'Tus recetas se sincronizan automáticamente con la nube. Pulsa el botón si necesitas forzar la sincronización.',
                             textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 15, color: Colors.black87),
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: Colors.black87,
+                            ),
                           ),
                           const SizedBox(height: 24),
                           ElevatedButton.icon(
@@ -191,12 +253,18 @@ class _UserScreenState extends State<UserScreen> {
                               if (!context.mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                    content: Text('Sesión cerrada correctamente.')),
+                                  content: Text(
+                                    'Sesión cerrada correctamente.',
+                                  ),
+                                ),
                               );
                             },
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.black,
-                              side: const BorderSide(color: Colors.black, width: 1.5),
+                              side: const BorderSide(
+                                color: Colors.black,
+                                width: 1.5,
+                              ),
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),

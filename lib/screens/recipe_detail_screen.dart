@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'dart:io';
 import '../models/recipe.dart';
@@ -371,8 +370,8 @@ class RecipeDetailScreen extends StatelessWidget {
   }
 
   Widget _buildMacronutrients() {
-    if (recipe.macronutrients == null) {
-      return const SizedBox.shrink();
+    if (recipe.macronutrients == null || !recipe.macronutrients!.hasAnyValue) {
+      return const Text('Nutrición no disponible');
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -405,7 +404,7 @@ class RecipeDetailScreen extends StatelessWidget {
                             Text(
                               recipe.macronutrients?.totalKcal != null
                                   ? '${recipe.macronutrients?.totalKcal}'
-                                  : '0',
+                                  : '—',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -422,45 +421,45 @@ class RecipeDetailScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                    PieChart(
-                      PieChartData(
-                        centerSpaceColor: Colors.transparent,
-                        borderData: FlBorderData(show: false),
-                        sectionsSpace: 5,
-                        centerSpaceRadius: 35,
-                        startDegreeOffset: 180,
-                        sections: [
-                          PieChartSectionData(
-                            // value: recipe.macronutrients['carbs'] ?? 0,
-                            value: recipe.macronutrients?.carbsGrams != null
-                                ? recipe.macronutrients!.carbsGrams!.toDouble()
-                                : 0,
-                            color: const Color.fromARGB(255, 82, 225, 211),
-                            title: ' ',
-                            radius: 15,
-                          ),
-                          PieChartSectionData(
-                            // value: recipe.macronutrients['protein'] ?? 0,
-                            value: recipe.macronutrients?.proteinGrams != null
-                                ? recipe.macronutrients!.proteinGrams!
-                                      .toDouble()
-                                : 0,
-                            color: const Color.fromARGB(255, 255, 168, 54),
-                            title: ' ',
-                            radius: 15,
-                          ),
-                          PieChartSectionData(
-                            // value: recipe.macronutrients['fat'] ?? 0,
-                            value: recipe.macronutrients?.fatGrams != null
-                                ? recipe.macronutrients!.fatGrams!.toDouble()
-                                : 0,
-                            color: const Color.fromARGB(255, 212, 98, 215),
-                            title: ' ',
-                            radius: 15,
-                          ),
-                        ],
+                    if (recipe.macronutrients!.carbsGrams != null &&
+                        recipe.macronutrients!.proteinGrams != null &&
+                        recipe.macronutrients!.fatGrams != null &&
+                        recipe.macronutrients!.carbsGrams! +
+                                recipe.macronutrients!.proteinGrams! +
+                                recipe.macronutrients!.fatGrams! >
+                            0)
+                      PieChart(
+                        PieChartData(
+                          centerSpaceColor: Colors.transparent,
+                          borderData: FlBorderData(show: false),
+                          sectionsSpace: 5,
+                          centerSpaceRadius: 35,
+                          startDegreeOffset: 180,
+                          sections: [
+                            PieChartSectionData(
+                              // value: recipe.macronutrients['carbs'] ?? 0,
+                              value: recipe.macronutrients!.carbsGrams!,
+                              color: const Color.fromARGB(255, 82, 225, 211),
+                              title: ' ',
+                              radius: 15,
+                            ),
+                            PieChartSectionData(
+                              // value: recipe.macronutrients['protein'] ?? 0,
+                              value: recipe.macronutrients!.proteinGrams!,
+                              color: const Color.fromARGB(255, 255, 168, 54),
+                              title: ' ',
+                              radius: 15,
+                            ),
+                            PieChartSectionData(
+                              // value: recipe.macronutrients['fat'] ?? 0,
+                              value: recipe.macronutrients!.fatGrams!,
+                              color: const Color.fromARGB(255, 212, 98, 215),
+                              title: ' ',
+                              radius: 15,
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -473,21 +472,21 @@ class RecipeDetailScreen extends StatelessWidget {
                     label: 'Carbs',
                     value: recipe.macronutrients?.carbsGrams != null
                         ? '${recipe.macronutrients?.carbsGrams}g'
-                        : '0g',
+                        : 'No disponible',
                   ),
                   _buildMacronutrientCard(
                     color: const Color.fromARGB(255, 255, 168, 54),
                     label: 'Protein',
                     value: recipe.macronutrients?.proteinGrams != null
                         ? '${recipe.macronutrients?.proteinGrams}g'
-                        : '0g',
+                        : 'No disponible',
                   ),
                   _buildMacronutrientCard(
                     color: const Color.fromARGB(255, 212, 98, 215),
                     label: 'Fat',
                     value: recipe.macronutrients?.fatGrams != null
                         ? '${recipe.macronutrients?.fatGrams}g'
-                        : '0g',
+                        : 'No disponible',
                   ),
                 ],
               ),
@@ -653,9 +652,6 @@ class RecipeDetailScreen extends StatelessWidget {
   }
 
   void _shareRecipe(BuildContext context) {
-    debugPrint(
-      '[share] source_url: ${recipe.sourceUrl ?? 'sin enlace de origen'}',
-    );
     // TODO: Implementar compartir receta
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Función de compartir próximamente')),

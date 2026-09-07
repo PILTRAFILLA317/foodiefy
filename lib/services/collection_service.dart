@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:foodiefy/models/collection.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import '../config/cloud_runtime.dart';
 import 'package:flutter/foundation.dart';
 
 // import 'api_service.dart';
@@ -10,27 +10,29 @@ class CollectionService {
   // static Future<List<Recipe>> getAllRecipes() async {
   //   return await StorageService.getRecipes();
   // }
-  
+
   // static Future<void> createRecipe(Recipe recipe) async {
   //   await StorageService.saveRecipe(recipe);
   // }
-  
+
   // // static Future<Recipe> importRecipeFromUrl(String url) async {
   // //   final recipe = await ApiService.extractRecipeFromUrl(url);
   // //   await StorageService.saveRecipe(recipe);
   // //   return recipe;
   // // }
-  
+
   // static Future<void> updateRecipe(Recipe recipe) async {
   //   await StorageService.updateRecipe(recipe);
   // }
-  
+
   // static Future<void> deleteRecipe(String id) async {
   //   await StorageService.deleteRecipe(id);
   // }
 
-  Future<void> addRecipeToCollection(String collectionId, String recipeId) async {
-    debugPrint('Adding recipe $recipeId to collection $collectionId');
+  Future<void> addRecipeToCollection(
+    String collectionId,
+    String recipeId,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     final collections = await getCollections();
 
@@ -52,17 +54,19 @@ class CollectionService {
 
     // Try to mirror in Supabase if we have a logged in user
     try {
-      final userId = Supabase.instance.client.auth.currentUser?.id;
+      final supabase = CloudRuntime.client;
+      if (supabase == null) return;
+      final userId = supabase.auth.currentUser?.id;
       if (userId != null) {
         // upsert collection_recipes row
-        await Supabase.instance.client.from('collection_recipes').insert({
+        await supabase.from('collection_recipes').insert({
           'collection_id': collectionId,
           'recipe_id': recipeId,
           'user_id': userId,
         }).select();
       }
     } catch (e) {
-      debugPrint('[collection_service] addRecipeToCollection supabase error: $e');
+      debugPrint('[collection_service] addRecipeToCollection supabase failed');
     }
   }
 
@@ -74,7 +78,10 @@ class CollectionService {
         .toList();
   }
 
-  Future<void> removeRecipeFromCollection(String collectionId, String recipeId) async {
+  Future<void> removeRecipeFromCollection(
+    String collectionId,
+    String recipeId,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     final collections = await getCollections();
 
@@ -105,19 +112,20 @@ class CollectionService {
 
     // mirror removal in Supabase
     try {
-      final userId = Supabase.instance.client.auth.currentUser?.id;
+      final supabase = CloudRuntime.client;
+      if (supabase == null) return;
+      final userId = supabase.auth.currentUser?.id;
       if (userId != null) {
-        await Supabase.instance.client
-            .from('collection_recipes')
-            .delete()
-            .match({
+        await supabase.from('collection_recipes').delete().match({
           'collection_id': collectionId,
           'recipe_id': recipeId,
           'user_id': userId,
         }).select();
       }
     } catch (e) {
-      debugPrint('[collection_service] removeRecipeFromCollection supabase error: $e');
+      debugPrint(
+        '[collection_service] removeRecipeFromCollection supabase failed',
+      );
     }
   }
 
@@ -129,33 +137,35 @@ class CollectionService {
   Future<void> deleteCollection(RecipeCollection collection) async {
     final prefs = await SharedPreferences.getInstance();
     final collections = await getCollections();
-    
+
     collections.removeWhere((c) => c.id == collection.id);
-    
+
     final collectionsJson = collections
         .map((c) => jsonEncode(c.toJson()))
         .toList();
-    
+
     await prefs.setStringList('collections', collectionsJson);
 
     // delete in Supabase as well (will cascade to collection_recipes)
     try {
-      final userId = Supabase.instance.client.auth.currentUser?.id;
+      final supabase = CloudRuntime.client;
+      if (supabase == null) return;
+      final userId = supabase.auth.currentUser?.id;
       if (userId != null) {
-    await Supabase.instance.client
-      .from('collections')
-      .delete()
-      .match({'id': collection.id, 'user_id': userId}).select();
+        await supabase.from('collections').delete().match({
+          'id': collection.id,
+          'user_id': userId,
+        }).select();
       }
     } catch (e) {
-      debugPrint('[collection_service] deleteCollection supabase error: $e');
+      debugPrint('[collection_service] deleteCollection supabase failed');
     }
   }
 
   Future<void> saveCollection(String name) async {
     final prefs = await SharedPreferences.getInstance();
     final collections = await getCollections();
-    
+
     final newCollection = RecipeCollection(
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
@@ -164,22 +174,23 @@ class CollectionService {
       recipeIds: [],
       isMaster: false,
     );
-    
+
     collections.add(newCollection);
-    
+
     final collectionsJson = collections
         .map((collection) => jsonEncode(collection.toJson()))
         .toList();
-    
+
     await prefs.setStringList('collections', collectionsJson);
 
     // create collection in Supabase (if logged in)
     try {
-      final userId = Supabase.instance.client.auth.currentUser?.id;
+      final supabase = CloudRuntime.client;
+      if (supabase == null) return;
+      final userId = supabase.auth.currentUser?.id;
       if (userId != null) {
-        debugPrint('Creating collection in Supabase for user $userId');
         // let the DB generate a UUID id to keep types consistent
-        final res = await Supabase.instance.client.from('collections').insert({
+        final res = await supabase.from('collections').insert({
           'user_id': userId,
           'name': newCollection.name,
           // 'description': newCollection.description,
@@ -205,10 +216,14 @@ class CollectionService {
                 );
 
                 // replace the temporary collection in local storage
-                final idx = collections.indexWhere((c) => c.id == newCollection.id);
+                final idx = collections.indexWhere(
+                  (c) => c.id == newCollection.id,
+                );
                 if (idx != -1) {
                   collections[idx] = updated;
-                  final updatedJson = collections.map((c) => jsonEncode(c.toJson())).toList();
+                  final updatedJson = collections
+                      .map((c) => jsonEncode(c.toJson()))
+                      .toList();
                   await prefs.setStringList('collections', updatedJson);
                 }
               }
@@ -218,12 +233,11 @@ class CollectionService {
             // ignore parsing errors
           }
         }
-      }
-      else {
+      } else {
         debugPrint('No logged in user, skipping Supabase collection creation');
       }
     } catch (e) {
-      debugPrint('[collection_service] saveCollection supabase error: $e');
+      debugPrint('[collection_service] saveCollection supabase failed');
     }
   }
 }

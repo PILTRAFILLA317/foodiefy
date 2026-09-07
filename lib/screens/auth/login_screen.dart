@@ -1,3 +1,4 @@
+import '../../config/cloud_runtime.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -15,7 +16,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final SupabaseClient _supabase = Supabase.instance.client;
+  SupabaseClient get _supabase => CloudRuntime.client!;
 
   bool _isSubmitting = false;
   String? _errorMessage;
@@ -45,8 +46,10 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       Navigator.of(context).pop(true);
     } on AuthException catch (error) {
+      if (!mounted) return;
       setState(() => _errorMessage = error.message);
     } catch (_) {
+      if (!mounted) return;
       setState(
         () => _errorMessage = 'No se pudo iniciar sesión. Intenta nuevamente.',
       );
@@ -73,8 +76,10 @@ class _LoginScreenState extends State<LoginScreen> {
       ).showSnackBar(const SnackBar(content: Text('Redirigiendo a Google...')));
       Navigator.of(context).pop(true);
     } on AuthException catch (error) {
+      if (!mounted) return;
       setState(() => _errorMessage = error.message);
     } catch (_) {
+      if (!mounted) return;
       setState(() => _errorMessage = 'No se pudo iniciar sesión con Google.');
     } finally {
       if (mounted) {
@@ -85,6 +90,14 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!CloudRuntime.enabled) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Cuenta')),
+        body: const Center(
+          child: Text('Autenticación deshabilitada en rescate local.'),
+        ),
+      );
+    }
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,

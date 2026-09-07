@@ -1,3 +1,4 @@
+import '../config/app_config.dart';
 import 'dart:async';
 import 'dart:math';
 
@@ -98,10 +99,7 @@ class _ImportErrorScreenState extends State<ImportErrorScreen>
               const SizedBox(height: 20),
               const Text(
                 'Asegúrate de que:',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 12),
               Align(
@@ -269,54 +267,57 @@ class _ImportLoadingScreenState extends State<ImportLoadingScreen>
       loader = Future<void>.value();
     }
 
-    loader.then((_) {
-      if (!mounted || token != _visualSequence) return;
-      setState(() {
-        _currentMessage = nextMessage;
-        _currentGif = nextGif;
-        _gifInstance++;
-      });
-      _restartGifPlayback();
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted || token != _visualSequence) return;
-        setState(() => _visualVisible = true);
-        _timer?.cancel();
-        _timer = Timer(_cycleDuration, () {
-          if (!mounted) return;
-          _scheduleVisualChange();
+    loader
+        .then((_) {
+          if (!mounted || token != _visualSequence) return;
+          setState(() {
+            _currentMessage = nextMessage;
+            _currentGif = nextGif;
+            _gifInstance++;
+          });
+          _restartGifPlayback();
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted || token != _visualSequence) return;
+            setState(() => _visualVisible = true);
+            _timer?.cancel();
+            _timer = Timer(_cycleDuration, () {
+              if (!mounted) return;
+              _scheduleVisualChange();
+            });
+          });
+        })
+        .catchError((_) {
+          if (!mounted || token != _visualSequence) return;
+          setState(() {
+            _currentMessage = nextMessage;
+            _currentGif = 'assets/gifs/kitchen.gif';
+            _gifInstance++;
+          });
+          _restartGifPlayback();
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted || token != _visualSequence) return;
+            setState(() => _visualVisible = true);
+            _timer?.cancel();
+            _timer = Timer(_cycleDuration, () {
+              if (!mounted) return;
+              _scheduleVisualChange();
+            });
+          });
         });
-      });
-    }).catchError((_) {
-      if (!mounted || token != _visualSequence) return;
-      setState(() {
-        _currentMessage = nextMessage;
-        _currentGif = 'assets/gifs/kitchen.gif';
-        _gifInstance++;
-      });
-      _restartGifPlayback();
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted || token != _visualSequence) return;
-        setState(() => _visualVisible = true);
-        _timer?.cancel();
-        _timer = Timer(_cycleDuration, () {
-          if (!mounted) return;
-          _scheduleVisualChange();
-        });
-      });
-    });
   }
 
   Future<void> _startImport() async {
     try {
       final recipe = await widget.service.importRecipeFromUrl(widget.url);
-      debugPrint('Imported recipe: ${recipe.id}');
       _complete(ImportLoadingResult(recipe: recipe));
     } on ImportRecipeException catch (error) {
       _complete(ImportLoadingResult(errorMessage: error.message));
     } catch (_) {
-      _complete(const ImportLoadingResult(
-        errorMessage: 'No se pudo importar la receta. Intenta nuevamente.',
-      ));
+      _complete(
+        const ImportLoadingResult(
+          errorMessage: 'No se pudo importar la receta. Intenta nuevamente.',
+        ),
+      );
     }
   }
 
@@ -353,10 +354,8 @@ class _ImportLoadingScreenState extends State<ImportLoadingScreen>
                 curve: Curves.easeInOut,
                 child: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 300),
-                  transitionBuilder: (child, animation) => FadeTransition(
-                    opacity: animation,
-                    child: child,
-                  ),
+                  transitionBuilder: (child, animation) =>
+                      FadeTransition(opacity: animation, child: child),
                   child: SizedBox(
                     key: ValueKey('gif-$_gifInstance-$gifAsset'),
                     height: 220,
@@ -378,10 +377,8 @@ class _ImportLoadingScreenState extends State<ImportLoadingScreen>
                 curve: Curves.easeInOut,
                 child: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 250),
-                  transitionBuilder: (child, animation) => FadeTransition(
-                    opacity: animation,
-                    child: child,
-                  ),
+                  transitionBuilder: (child, animation) =>
+                      FadeTransition(opacity: animation, child: child),
                   child: message.isEmpty
                       ? const SizedBox.shrink()
                       : Text(
@@ -399,10 +396,7 @@ class _ImportLoadingScreenState extends State<ImportLoadingScreen>
               Text(
                 'Estamos importando tu receta. Esto puede tardar unos segundos.',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.grey.shade600,
-                  fontSize: 14,
-                ),
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
               ),
               const Spacer(),
               // const LinearProgressIndicator(minHeight: 4),
@@ -420,17 +414,25 @@ class _ImportLoadingScreenState extends State<ImportLoadingScreen>
 
 class _ImportRecipeScreenState extends State<ImportRecipeScreen> {
   final TextEditingController _urlController = TextEditingController();
-  final ImportRecipeService _service = ImportRecipeService();
+  ImportRecipeService _service = ImportRecipeService();
   bool _isNavigating = false;
   String? _errorMessage;
 
   @override
   void dispose() {
+    _service.close();
     _urlController.dispose();
     super.dispose();
   }
 
   Future<void> _handleImport() async {
+    if (AppConfig.current.rescueMode) {
+      setState(
+        () => _errorMessage =
+            'Importación cloud deshabilitada en rescate local. Puedes crear recetas manualmente.',
+      );
+      return;
+    }
     final url = _urlController.text.trim();
     if (url.isEmpty) {
       setState(() {
@@ -444,6 +446,8 @@ class _ImportRecipeScreenState extends State<ImportRecipeScreen> {
       _isNavigating = true;
     });
 
+    _service.close();
+    _service = ImportRecipeService();
     ImportLoadingResult? result;
 
     try {
@@ -451,10 +455,7 @@ class _ImportRecipeScreenState extends State<ImportRecipeScreen> {
         context,
         MaterialPageRoute(
           fullscreenDialog: true,
-          builder: (_) => ImportLoadingScreen(
-            url: url,
-            service: _service,
-          ),
+          builder: (_) => ImportLoadingScreen(url: url, service: _service),
         ),
       );
     } finally {
@@ -486,9 +487,7 @@ class _ImportRecipeScreenState extends State<ImportRecipeScreen> {
 
     final createdRecipe = await Navigator.push<Recipe?>(
       context,
-      MaterialPageRoute(
-        builder: (_) => CreateRecipeScreen(template: recipe),
-      ),
+      MaterialPageRoute(builder: (_) => CreateRecipeScreen(template: recipe)),
     );
 
     if (!mounted) return;
@@ -584,8 +583,11 @@ class _ImportRecipeScreenState extends State<ImportRecipeScreen> {
                       color: Colors.black,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.info_outline,
-                        color: Colors.white, size: 18),
+                    child: const Icon(
+                      Icons.info_outline,
+                      color: Colors.white,
+                      size: 18,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(

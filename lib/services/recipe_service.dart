@@ -2,15 +2,16 @@
 import '../models/recipe.dart';
 import 'storage_service.dart';
 import 'collection_service.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import '../config/cloud_runtime.dart';
 import 'package:flutter/foundation.dart';
+
 // import 'api_service.dart';
 
 class RecipeService {
   static Future<List<Recipe>> getAllRecipes() async {
     return await StorageService.getRecipes();
   }
-  
+
   static Future<void> createRecipe(Recipe recipe) async {
     await StorageService.saveRecipe(recipe);
     // Añade la receta a la colección "Todas las recetas" (id: "0")
@@ -19,14 +20,14 @@ class RecipeService {
     try {
       await saveRecipeForCurrentUser(recipeId: recipe.id);
     } catch (e) {
-      debugPrint('[recipe_service] saveRecipeForCurrentUser error: $e');
+      debugPrint('[recipe_service] saveRecipeForCurrentUser failed');
     }
   }
-  
+
   static Future<void> updateRecipe(Recipe recipe) async {
     await StorageService.updateRecipe(recipe);
   }
-  
+
   static Future<void> deleteRecipe(String id) async {
     await StorageService.deleteRecipe(id);
   }
@@ -36,7 +37,8 @@ class RecipeService {
   static Future<void> saveRecipeForCurrentUser({
     required String recipeId,
   }) async {
-    final supabase = Supabase.instance.client;
+    final supabase = CloudRuntime.client;
+    if (supabase == null) return;
     final user = supabase.auth.currentUser;
     if (user == null) {
       // No authenticated user — nothing to do server-side.
@@ -57,7 +59,7 @@ class RecipeService {
           .select()
           .maybeSingle();
     } catch (e) {
-      debugPrint('[recipe_service] saveRecipeForCurrentUser supabase error: $e');
+      debugPrint('[recipe_service] saveRecipeForCurrentUser supabase failed');
       // Don't rethrow — keep local flow resilient when network/backend fail.
     }
   }

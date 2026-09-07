@@ -44,3 +44,9 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Local public configuration and temporary legacy compatibility
+config/*.local.json
+.env
+.env.*
+!.env.example

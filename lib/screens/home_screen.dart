@@ -35,6 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadCollections() async {
     final collections = await CollectionService().getCollections();
+    if (!mounted) return;
     setState(() {
       _collections = collections;
       _applyCollectionFilter();
@@ -43,6 +44,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadAllRecipes() async {
     final recipes = await StorageService.getRecipes();
+    if (!mounted) return;
     setState(() {
       _allRecipes = recipes;
       _applyCollectionFilter();
@@ -339,7 +341,10 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _navigateToCreateRecipe({Recipe? template}) async {
     final recipe = await Navigator.push<Recipe?>(
       context,
-      MaterialPageRoute(builder: (_) => CreateRecipeScreen(template: template)),
+      MaterialPageRoute(
+        builder: (_) =>
+            CreateRecipeScreen(template: template, isEditing: template != null),
+      ),
     );
     if (recipe != null) {
       await _onRecipeCreated(recipe);

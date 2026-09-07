@@ -1,0 +1,7 @@
+{
+  "APP_ENV": "production",
+  "LOCAL_RESCUE": "false",
+  "API_BASE_URL": "https://api.example.invalid",
+  "SUPABASE_URL": "https://project.example.invalid",
+  "SUPABASE_PUBLISHABLE_KEY": ""
+}

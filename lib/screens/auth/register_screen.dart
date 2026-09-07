@@ -1,3 +1,4 @@
+import '../../config/cloud_runtime.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -15,7 +16,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
-  final SupabaseClient _supabase = Supabase.instance.client;
+  SupabaseClient get _supabase => CloudRuntime.client!;
 
   bool _isSubmitting = false;
   String? _errorMessage;
@@ -43,16 +44,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content:
-              Text('Cuenta creada. Revisa tu correo para verificar tu cuenta.'),
+          content: Text(
+            'Cuenta creada. Revisa tu correo para verificar tu cuenta.',
+          ),
         ),
       );
       Navigator.of(context).pop(true);
     } on AuthException catch (error) {
+      if (!mounted) return;
       setState(() => _errorMessage = error.message);
     } catch (_) {
-      setState(() =>
-          _errorMessage = 'No pudimos crear tu cuenta. Intenta nuevamente.');
+      if (!mounted) return;
+      setState(
+        () => _errorMessage = 'No pudimos crear tu cuenta. Intenta nuevamente.',
+      );
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
@@ -71,13 +76,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
         redirectTo: kIsWeb ? null : 'io.supabase.foodiefy://login-callback',
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Redirigiendo a Google...')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Redirigiendo a Google...')));
       Navigator.of(context).pop(true);
     } on AuthException catch (error) {
+      if (!mounted) return;
       setState(() => _errorMessage = error.message);
     } catch (_) {
+      if (!mounted) return;
       setState(() => _errorMessage = 'No se pudo continuar con Google.');
     } finally {
       if (mounted) {
@@ -88,6 +95,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!CloudRuntime.enabled) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Cuenta')),
+        body: const Center(
+          child: Text('Autenticación deshabilitada en rescate local.'),
+        ),
+      );
+    }
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -112,7 +127,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       const Text(
                         'Únete a Foodiefy',
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       const SizedBox(height: 12),
                       const Text(
@@ -201,7 +219,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       if (_errorMessage != null) ...[
                         Text(
                           _errorMessage!,
-                          style: const TextStyle(color: Colors.red, fontSize: 13),
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 13,
+                          ),
                         ),
                         const SizedBox(height: 12),
                       ],
@@ -219,7 +240,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ? const SizedBox(
                                 height: 18,
                                 width: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               )
                             : const Text('Crear cuenta'),
                       ),
@@ -228,7 +251,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         onPressed: _isSubmitting ? null : _signUpWithGoogle,
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.black,
-                          side: const BorderSide(color: Colors.black, width: 1.5),
+                          side: const BorderSide(
+                            color: Colors.black,
+                            width: 1.5,
+                          ),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),

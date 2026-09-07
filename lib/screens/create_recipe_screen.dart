@@ -1,6 +1,5 @@
 // lib/screens/create_recipe_screen.dart
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../models/recipe.dart';
@@ -8,12 +7,14 @@ import '../services/recipe_service.dart';
 // import '../widgets/auth_required_dialog.dart';
 import '../widgets/time_picker_widget.dart';
 import 'package:uuid/uuid.dart';
+
 // import 'auth_placeholder_screen.dart';
 
 class CreateRecipeScreen extends StatefulWidget {
   final Recipe? template;
+  final bool isEditing;
 
-  const CreateRecipeScreen({super.key, this.template});
+  const CreateRecipeScreen({super.key, this.template, this.isEditing = false});
 
   @override
   State<CreateRecipeScreen> createState() => _CreateRecipeScreenState();
@@ -49,7 +50,7 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
     _isImportedSource = template?.isImported ?? false;
 
     if (template != null) {
-      _id = template.id;
+      _id = widget.isEditing ? template.id : null;
       _titleController.text = template.title;
       _descriptionController.text = template.description ?? '';
       _quantityController.text = template.finalQuantity ?? '';
@@ -92,7 +93,7 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text('Crear Receta'),
+        title: Text(widget.isEditing ? 'Editar Receta' : 'Crear Receta'),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         surfaceTintColor: Colors.white,
@@ -506,8 +507,13 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
     return TextFormField(
       controller: controller,
       cursorColor: Colors.black,
-      keyboardType: TextInputType.number,
-      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      validator: (value) =>
+          value == null ||
+              value.trim().isEmpty ||
+              RecipeMacronutrients.parseValue(value) != null
+          ? null
+          : 'Introduce un número finito y no negativo.',
       decoration: InputDecoration(
         labelText: label,
         labelStyle: const TextStyle(color: Colors.black),
@@ -936,12 +942,23 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
         isImported: _isImportedSource,
         prepTimeMinutes: _prepTimeMinutes,
         macronutrients: macros,
-        createdAt: DateTime.now(),
+        createdAt: widget.isEditing
+            ? widget.template!.createdAt
+            : DateTime.now(),
+        originalVideoUrl: widget.template?.originalVideoUrl,
+        thumbnailUrl: widget.template?.thumbnailUrl,
+        prepTimeText: _prepTimeMinutes == widget.template?.prepTimeMinutes
+            ? widget.template?.prepTimeText
+            : null,
         uploader: widget.template?.uploader,
         platform: widget.template?.platform,
       );
 
-      await RecipeService.createRecipe(recipe);
+      if (widget.isEditing) {
+        await RecipeService.updateRecipe(recipe);
+      } else {
+        await RecipeService.createRecipe(recipe);
+      }
 
       if (mounted) {
         Navigator.pop(context, recipe);
@@ -1003,10 +1020,10 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
     );
   }
 
-  int? _parseMacroValue(TextEditingController controller) {
+  double? _parseMacroValue(TextEditingController controller) {
     final raw = controller.text.trim();
     if (raw.isEmpty) return null;
-    return int.tryParse(raw);
+    return RecipeMacronutrients.parseValue(raw);
   }
 
   @override
