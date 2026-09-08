@@ -1,3 +1,4 @@
+import 'shopping_screen.dart';
 import '../repositories/app_repositories.dart';
 import '../repositories/library_repository.dart';
 import 'auth/login_screen.dart';
@@ -93,6 +94,14 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.white,
         actions: [
+          IconButton(
+            tooltip: 'Mi compra',
+            icon: const Icon(Icons.shopping_cart_outlined),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ShoppingScreen()),
+            ),
+          ),
           IconButton(
             tooltip: 'Importar y recuperar recetas',
             icon: const Icon(Icons.download_outlined, color: Colors.black),

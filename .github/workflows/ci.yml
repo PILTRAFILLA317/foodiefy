@@ -1,0 +1,39 @@
+name: Flutter checks (no application build)
+'on': [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+concurrency:
+  group: flutter-checks-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.14.0'
+      - uses: subosito/flutter-action@fd55f4c5af5b953cc57a2be44cb082c8f6635e8e
+        with:
+          flutter-version: '3.47.2'
+          channel: stable
+          cache: false
+      - run: "flutter pub get --enforce-lockfile"
+      - run: "flutter analyze --no-pub --no-fatal-infos"
+      - run: "flutter test --no-pub test/staging_config_test.dart test/session_repository_test.dart test/cloud_persistence_test.dart test/import_jobs_test.dart test/shopping_test.dart"
+      - run: "python tool/check_contracts.py"
+  security:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.14.0'
+      - run: "python tool/security_scan.py secrets"
+      - run: "python tool/security_scan.py dependencies"

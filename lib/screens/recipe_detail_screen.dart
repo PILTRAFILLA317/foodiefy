@@ -1,8 +1,9 @@
+import 'shopping_screen.dart';
 import 'package:flutter/material.dart';
 import 'dart:io';
 import '../models/recipe.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:fl_chart/fl_chart.dart';
+import '../widgets/honest_nutrition.dart';
 
 import 'package:foodiefy/screens/step_detail_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -60,6 +61,11 @@ class RecipeDetailScreen extends StatelessWidget {
                     _buildPrepAndYieldSection(),
                     const SizedBox(height: 24),
                   ],
+                  FilledButton.icon(
+                    onPressed: () => addRecipeShopping(context, recipe),
+                    icon: const Icon(Icons.add_shopping_cart),
+                    label: const Text('Añadir a la compra'),
+                  ),
                   _buildIngredientsSection(),
                   const SizedBox(height: 24),
                   _buildStepsSection(context),
@@ -369,133 +375,7 @@ class RecipeDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMacronutrients() {
-    if (recipe.macronutrients == null || !recipe.macronutrients!.hasAnyValue) {
-      return const Text('Nutrición no disponible');
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            const Icon(Icons.pie_chart_rounded, size: 24, color: Colors.black),
-            const SizedBox(width: 8),
-            Text(
-              'Macronutrientes',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-        // const SizedBox(height: 8),
-        SizedBox(
-          height: 120,
-          child: Row(
-            children: [
-              SizedBox(
-                width: 120,
-                height: 120,
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              recipe.macronutrients?.totalKcal != null
-                                  ? '${recipe.macronutrients?.totalKcal}'
-                                  : '—',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Text(
-                              'kcal',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    if (recipe.macronutrients!.carbsGrams != null &&
-                        recipe.macronutrients!.proteinGrams != null &&
-                        recipe.macronutrients!.fatGrams != null &&
-                        recipe.macronutrients!.carbsGrams! +
-                                recipe.macronutrients!.proteinGrams! +
-                                recipe.macronutrients!.fatGrams! >
-                            0)
-                      PieChart(
-                        PieChartData(
-                          centerSpaceColor: Colors.transparent,
-                          borderData: FlBorderData(show: false),
-                          sectionsSpace: 5,
-                          centerSpaceRadius: 35,
-                          startDegreeOffset: 180,
-                          sections: [
-                            PieChartSectionData(
-                              // value: recipe.macronutrients['carbs'] ?? 0,
-                              value: recipe.macronutrients!.carbsGrams!,
-                              color: const Color.fromARGB(255, 82, 225, 211),
-                              title: ' ',
-                              radius: 15,
-                            ),
-                            PieChartSectionData(
-                              // value: recipe.macronutrients['protein'] ?? 0,
-                              value: recipe.macronutrients!.proteinGrams!,
-                              color: const Color.fromARGB(255, 255, 168, 54),
-                              title: ' ',
-                              radius: 15,
-                            ),
-                            PieChartSectionData(
-                              // value: recipe.macronutrients['fat'] ?? 0,
-                              value: recipe.macronutrients!.fatGrams!,
-                              color: const Color.fromARGB(255, 212, 98, 215),
-                              title: ' ',
-                              radius: 15,
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildMacronutrientCard(
-                    color: const Color.fromARGB(255, 82, 225, 211),
-                    label: 'Carbs',
-                    value: recipe.macronutrients?.carbsGrams != null
-                        ? '${recipe.macronutrients?.carbsGrams}g'
-                        : 'No disponible',
-                  ),
-                  _buildMacronutrientCard(
-                    color: const Color.fromARGB(255, 255, 168, 54),
-                    label: 'Protein',
-                    value: recipe.macronutrients?.proteinGrams != null
-                        ? '${recipe.macronutrients?.proteinGrams}g'
-                        : 'No disponible',
-                  ),
-                  _buildMacronutrientCard(
-                    color: const Color.fromARGB(255, 212, 98, 215),
-                    label: 'Fat',
-                    value: recipe.macronutrients?.fatGrams != null
-                        ? '${recipe.macronutrients?.fatGrams}g'
-                        : 'No disponible',
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
+  Widget _buildMacronutrients() => HonestNutrition(recipe: recipe);
 
   bool get _hasPrepOrQuantity {
     final hasPrep =
@@ -655,44 +535,6 @@ class RecipeDetailScreen extends StatelessWidget {
     // TODO: Implementar compartir receta
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Función de compartir próximamente')),
-    );
-  }
-
-  Padding _buildMacronutrientCard({
-    required Color color,
-    required String label,
-    required String value,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                value,
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          Text(
-            label,
-            style: TextStyle(color: Colors.black, fontWeight: FontWeight.w300),
-          ),
-          // const SizedBox(height: 4),
-        ],
-      ),
     );
   }
 }

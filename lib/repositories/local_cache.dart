@@ -31,6 +31,9 @@ class LocalCache extends GeneratedDatabase {
     },
     beforeOpen: (_) async {
       await customStatement('PRAGMA secure_delete = ON');
+      await customStatement(
+        'CREATE TABLE IF NOT EXISTS shopping_state (owner_id TEXT PRIMARY KEY, value TEXT NOT NULL)',
+      );
     },
   );
 
@@ -53,6 +56,21 @@ class LocalCache extends GeneratedDatabase {
     'DELETE FROM cache WHERE owner_id=? AND cache_key=?',
     [owner, key],
   );
+  Future<Map<String, dynamic>?> readShopping(String owner) async {
+    final row = await customSelect(
+      'SELECT value FROM shopping_state WHERE owner_id=?',
+      variables: [Variable(owner)],
+    ).getSingleOrNull();
+    return row == null
+        ? null
+        : Map<String, dynamic>.from(jsonDecode(row.read<String>('value')));
+  }
+
+  Future<void> writeShopping(String owner, Map<String, dynamic> value) =>
+      customStatement('INSERT OR REPLACE INTO shopping_state VALUES (?,?)', [
+        owner,
+        jsonEncode(value),
+      ]);
   Future<void> clearOwner(String owner) =>
       customStatement('DELETE FROM cache WHERE owner_id=?', [owner]);
   Future<void> retainOnly(String? owner) => owner == null

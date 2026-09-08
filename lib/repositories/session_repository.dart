@@ -88,7 +88,9 @@ class SessionRepository extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> Function()? beforeSignOut;
   Future<void> signOut() async {
+    await beforeSignOut?.call();
     // Hide private data immediately, even if remote revocation fails.
     _session = null;
     recoveringPassword = false;

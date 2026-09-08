@@ -29,20 +29,28 @@ class RecipeCodec {
             ).contains(false));
     final macros = recipe.macronutrients;
     // Legacy macro basis/provenance was not recorded; retain raw backup instead of guessing.
-    final nutrition = legacy || (recipe.isImported && base == null)
+    final nutrition =
+        legacy ||
+            (recipe.isImported &&
+                base == null &&
+                recipe.nutritionInputMethod == null)
         ? null
         : macros == null
         ? null
         : {
-            'basis': 'whole_recipe',
+            'basis': recipe.nutritionInputMethod == null
+                ? base?['nutrition']?['basis'] ?? 'whole_recipe'
+                : 'whole_recipe',
             'kcal': macros.totalKcal,
             'protein_g': macros.proteinGrams,
             'carbs_g': macros.carbsGrams,
             'fat_g': macros.fatGrams,
-            'method': 'manual',
+            'method': recipe.nutritionInputMethod ?? 'manual',
             'assumptions': <String>[],
             'status': 'partial',
-            'known_mass_g': null,
+            'known_mass_g': recipe.nutritionInputMethod == null
+                ? base?['nutrition']?['known_mass_g']
+                : null,
           };
     return {
       'schema_version': '1.0',
@@ -98,14 +106,18 @@ class RecipeCodec {
       'total_minutes': base?['total_minutes'],
       'servings': base?['servings'],
       'yield_text': text(recipe.finalQuantity),
-      'nutrition': ingredientsChanged
+      'nutrition': ingredientsChanged && recipe.nutritionInputMethod == null
           ? null
-          : base != null && _sameMacros(macros, base['nutrition'])
+          : base != null &&
+                recipe.nutritionInputMethod == null &&
+                _sameMacros(macros, base['nutrition'])
           ? base['nutrition']
           : nutrition,
       'warnings': [
         if (base != null) ...(base['warnings'] as List),
-        if (ingredientsChanged && base['nutrition'] != null)
+        if (ingredientsChanged &&
+            recipe.nutritionInputMethod == null &&
+            base['nutrition'] != null)
           'Nutrición invalidada al editar ingredientes.',
         if (legacy)
           'Legacy raw conservado en backup; revisar campos sin procedencia.',

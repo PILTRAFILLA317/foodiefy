@@ -67,6 +67,39 @@ class UserScreen extends StatelessWidget {
               TextButton(
                 onPressed: () async {
                   try {
+                    final shopping = AppRepositories.shopping;
+                    if (shopping?.pending == true) {
+                      final choice = await showDialog<String>(
+                        context: context,
+                        builder: (c) => AlertDialog(
+                          title: const Text('Hay compras pendientes'),
+                          content: const Text(
+                            'Elige qué hacer antes de cerrar sesión.',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(c),
+                              child: const Text('Cancelar logout'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(c, 'sync'),
+                              child: const Text('Sincronizar'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(c, 'discard'),
+                              child: const Text('Descartar pendientes'),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (choice == null) return;
+                      if (choice == 'sync') {
+                        await shopping!.sync();
+                        if (shopping.pending) return;
+                      } else {
+                        await shopping!.discardPending();
+                      }
+                    }
                     await session.signOut();
                   } catch (_) {
                     if (context.mounted) {

@@ -1,5 +1,8 @@
 class Recipe {
   final String? ownerId;
+
+  /// Explicitly replaced manual/label values, always for the complete recipe.
+  final String? nutritionInputMethod;
   final int? revision;
   final Map<String, dynamic>? cloudDraft;
   final String id;
@@ -23,6 +26,7 @@ class Recipe {
 
   Recipe({
     this.ownerId,
+    this.nutritionInputMethod,
     this.revision,
     this.cloudDraft,
     required this.id,

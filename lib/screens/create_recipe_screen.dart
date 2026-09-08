@@ -53,6 +53,7 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
   int? _prepTimeMinutes;
   late final bool _isImportedSource;
   bool _includeMacros = false;
+  String? _nutritionInputMethod;
 
   @override
   void initState() {
@@ -459,7 +460,7 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
             ),
             SwitchListTile.adaptive(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Añadir macronutrientes'),
+              title: const Text('Datos nutricionales'),
               subtitle: const Text(
                 'Calorías totales y gramos de carbohidratos, proteínas y grasas.',
               ),
@@ -476,6 +477,32 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
                       key: const ValueKey('macros-form'),
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        DropdownButtonFormField<String>(
+                          initialValue: 'preserve',
+                          decoration: const InputDecoration(
+                            labelText: 'Origen y base de estos valores',
+                          ),
+                          items: const [
+                            DropdownMenuItem(
+                              value: 'preserve',
+                              child: Text('Base actual (edición manual)'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'manual',
+                              child: Text('Manuales · receta completa'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'source_label',
+                              child: Text('Etiqueta · receta completa'),
+                            ),
+                          ],
+                          onChanged: (v) => setState(
+                            () => _nutritionInputMethod = v == 'preserve'
+                                ? null
+                                : v,
+                          ),
+                        ),
+
                         _buildMacroTextField(
                           label: 'Calorías totales',
                           suffix: 'kcal',
@@ -914,6 +941,7 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
         isImported: _isImportedSource,
         prepTimeMinutes: _prepTimeMinutes,
         macronutrients: macros,
+        nutritionInputMethod: _nutritionInputMethod,
         createdAt: widget.isEditing
             ? widget.template!.createdAt
             : DateTime.now(),

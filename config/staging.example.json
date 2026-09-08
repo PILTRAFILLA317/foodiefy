@@ -1,0 +1,7 @@
+{
+  "APP_ENV": "staging",
+  "LOCAL_RESCUE": "false",
+  "API_BASE_URL": "https://staging-api.example.invalid",
+  "SUPABASE_URL": "https://staging-project.example.invalid",
+  "SUPABASE_PUBLISHABLE_KEY": ""
+}

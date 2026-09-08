@@ -34,3 +34,10 @@ git -C ../foodiefy diff -- contracts
 
 No conectes este snapshot a la sincronización legacy durante Fase 03. La
 integración de persistencia/caché pertenece a Fase 04.
+
+## Shopping v1 · Fase 10
+
+Autoridad: foodiefy_api/src/contracts/shopping_v1.py. Regenerar desde API con
+`.venv-recovery/bin/python -m scripts.generate_shopping_contract --sync-flutter ../foodiefy/contracts`;
+repetir con `--check` para validar schema, manifest y fixtures revisados.
+Snapshot Flutter no se edita a mano. Semántica RPC/offline en docs/recovery/phase10.md.

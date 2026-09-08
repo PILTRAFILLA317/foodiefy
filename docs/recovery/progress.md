@@ -1,5 +1,127 @@
 # Progreso de recuperación · Foodiefy Flutter
 
+## Fase 11 · 2026-09-08
+
+**Configuración pública de staging y CI preparadas; app en hosting real pendiente.**
+
+### Decisiones y archivos/contratos afectados
+
+- `config/staging.example.json`: HTTPS, APP_ENV staging, LOCAL_RESCUE=false y
+  clave pública vacía; no secretos DB/IA/service_role en móvil.
+- `.github/workflows/ci.yml`: Flutter 3.47.2 y acciones fijadas, lockfile exigido,
+  analyze/tests focalizados y snapshots. No build ni release automático.
+- `tool/check_contracts.py`, `tool/security_scan.py`: hashes de contratos locales,
+  Gitleaks 8.28.0 y OSV Scanner 2.2.2 fijados. Contratos sin cambios de fase 11;
+  los cambios previos de compra/nutrición de fase 10 se conservan.
+- `test/staging_config_test.dart`, `docs/recovery/phase11.md`: rechazo de HTTP,
+  rescue y secretos; configuración válida HTTPS y comandos manuales de ejecución.
+- Docker, Railway, migraciones y runbooks operativos pertenecen al hermano API.
+
+### Pruebas con resultado real
+
+| Prueba | Resultado |
+| --- | --- |
+| staging_config + session_repository | **5 PASS** |
+| flutter analyze --no-pub --no-fatal-infos | **0 errores, 0 warnings; 12 infos preexistentes** |
+| Snapshots/hash de contratos | **PASS** |
+| Gitleaks en archivos versionados/no ignorados | **0 hallazgos**, no escaneo histórico Git |
+| OSV pubspec.lock | **0 avisos** |
+| Sintaxis workflow YAML | **PASS**, ejecución GitHub Actions **NO EJECUTADA** |
+| Dispositivo, datos móviles, builds/release, login/import remoto y restore | **NO EJECUTADO** |
+
+API hermano: 177 tests PASS con Postgres local, 87 pgTAP PASS y controles de
+readiness/seguridad; esta evidencia no prueba que la app funcione desde Railway.
+
+### Bloqueos e instrucciones manuales
+
+Seguir [phase11.md](phase11.md) para copiar configuración pública real y ejecutar
+la app, y los runbooks del hermano para revisión de costes/proyecto/región,
+build/deploy, promoción de SQL, alertas, restart y restore aislado. No hay URL real
+ni proyecto staging provisionado por Codex. IMPORT_ENABLED y pagos cerrados;
+rutas sociales/audio/visual Linux bloqueadas hasta prueba egress y hosting real.
+La app podrá conectar al staging cuando se provisionen servicios y configuración;
+no se certifica todavía importación desde datos móviles.
+
+Siguiente entrada: pruebas manuales fase 11, sin avanzar a fase 12. Sin builds,
+commits, despliegues ni migraciones remotas.
+Commit propuesto, no ejecutado: `chore: prepare staging deployment and operational runbooks`.
+
+## Fase 10 · 2026-09-08
+
+**Compra personal offline y nutrición transparente implementadas. Pruebas locales
+PASS; recálculo IA no habilitado y verificación nativa pendiente.**
+
+### Decisiones y archivos/contratos afectados
+
+- `lib/shopping/shopping_repository.dart`: outbox de compras con 200 operaciones,
+  persist-before-send, payload/UUID estable, dependencias tras merge, conflictos
+  explícitos, backoff/foreground/sondeo y guardia de cuenta/generación.
+- `lib/repositories/local_cache.dart`: tabla Drift shopping_state separada por
+  owner; no se elimina con limpieza de biblioteca. Inicialización aditiva sin
+  cambiar dependencias, sin extender cola offline al resto de la aplicación.
+- `app_repositories.dart`, `session_repository.dart`, `user_screen.dart`: gateway
+  Supabase, guardia logout y elecciones sincronizar/cancelar/descartar. Pendientes
+  de A se conservan privados en disco al expirar sesión, nunca se envían con B.
+- `screens/shopping_screen.dart`, `home_screen.dart`, `recipe_detail_screen.dart`:
+  CRUD manual, marcar/comprados/contador/vaciado confirmado, selección desde receta,
+  revisión de cantidad/rango/unidad, raciones o multiplicador explícito. Cada
+  selección se persiste atómicamente en cache antes de sincronizar sus ingredientes.
+- `shopping/quantities.dart`: fracciones, escalado conservador y conversiones de
+  nutrición que exigen raciones/masa; interfaz futura VerifiedIngredientNutrition.
+- `widgets/honest_nutrition.dart`, `models/recipe.dart`, `recipe_codec.dart`,
+  `create_recipe_screen.dart`: base/metodología/estimación visibles, desconocidos
+  sin cero, invalidación de nutrición anterior al editar ingredientes, reemplazo
+  explícito manual/etiqueta y porcentajes aproximados 4/4/9 solo con datos suficientes.
+- `contracts/shopping.v1.*`, contracts/README y `test/shopping_test.dart`:
+  snapshot API reproducible, fixtures sintéticos revisados y pruebas mínimas.
+- Ambos repositorios estaban limpios al inicio. Grafo MCP no disponible; se usó
+  inspección selectiva de fuentes. No se atribuye auditoría exhaustiva de grafo.
+
+### Pruebas con resultado real
+
+| Prueba | Resultado |
+| --- | --- |
+| Flutter suite `rtk proxy flutter test --no-pub --reporter expanded` | **PASS: 56 tests, 1 skip explícito** (HTTP anterior fase 04 no activado) |
+| Focalizada final `flutter test --no-pub test/shopping_test.dart --reporter expanded` | **PASS: 9 tests**: 2→4, fracciones/unknown, per100g sin masa, persistencia/reinicio, respuesta perdida, A→B, tombstone, dependencia tras merge, conflicto revisado, límite atómico y nutrición/etiqueta |
+| `flutter analyze --no-pub --no-fatal-infos` | **PASS: 0 errores, 0 warnings; 12 infos preexistentes** |
+| API suite `python -m pytest -q` | **PASS: 151 tests; 15 skips explícitos** de integración imports opt-in; 172 avisos deprecación |
+| API contrato/fixtures final `pytest -q tests/test_shopping_contract.py` | **PASS: 5 tests** |
+| Generador shopping `--check --sync-flutter ../foodiefy/contracts`; generador RecipeDraft `--check` | **PASS**, snapshot/schema/manifest/fixtures coherentes |
+| `supabase db push --local --yes` | **PASS**, tres migraciones incrementales aplicadas solo a foodiefy_api local existente, sin reset |
+| `supabase test db --local` | **PASS: 83 pgTAP**, 21 nuevos shopping; replay, cantidades/unidades/formas, permisos A/B, revisión, auditoría, tombstone y máximo sin mínimo |
+| `python -m scripts.test_shopping_local --local` | **PASS: Auth/PostgREST reales, 9 checks**, cuentas sintéticas locales; replay/merge/A-B/PATCH/tombstone |
+| `supabase db advisors --local --type all --fail-on warn`, `db lint --local --level warning` | **PASS**, sin incidencias ni errores |
+| Ruff `check src tests scripts`; `git diff --check` ambos repos | **PASS** |
+| Dispositivo/simulador, modo avión físico, cierre/reapertura nativo y dos apps reales | **NO EJECUTADO**; tests usan SQLite real + transporte inyectado, y smoke HTTP separado |
+| IA pagada, recálculo nutricional IA, medios remotos, producción, builds de app/contenedor, commits/despliegues | **NO EJECUTADO** |
+
+La primera suite Flutter completa detectó que había cambiado el texto exacto de
+«Nutrición no disponible»; se conservó ese texto y la ejecución posterior pasó.
+Dos invocaciones de flutter test desde el padre fallaron antes de ejecutar tests;
+se repitieron desde foodiefy. La documentación Drift inicialmente devolvió 404 en
+rutas antiguas; se localizó desde su índice la ruta oficial actual. Los fallos no
+cuentan como PASS. Se corrigieron los nuevos infos de estilo, sin tocar los 12
+anteriores. SDKs/lockfiles se conservaron; no se instaló ninguna dependencia.
+
+### Bloqueos y siguiente entrada
+
+Guía completa y pasos manuales exactos: [phase10.md](phase10.md). Verificar Home →
+carrito, dos recetas revisadas, raciones, kg/g frente a g/ml, modo avión y logout
+con pendientes. La cache de compras no prueba por sí sola comportamiento nativo.
+
+**Recálculo IA no habilitado**: falta proveedor nutricional, cuota/ledger y precio
+específicos. La UI devuelve indisponibilidad explícita, sin llamada ni coste; no
+presenta éxito simulado ni usa extracción para inventar macros. Se permiten entrada
+manual/etiqueta y conversiones aritméticas válidas. Undo de aportaciones no soportado;
+los snapshots/recibos se conservan. No se entrega base alimentaria ni catálogo.
+
+Siguiente entrada: verificación manual de Fase 10 y definición/habilitación del
+recálculo nutricional pendiente si se desea. No se avanzó a Fase 11. No hubo commits,
+reset/clean, borrado legacy, modificaciones remotas ni builds.
+
+Commit propuesto por repositorio, **no ejecutado**:
+`feat: add offline shopping list and transparent nutrition`.
+
 ## Fase 09 · 2026-09-08
 
 **Flujo móvil de jobs implementado y verificado con tests. Recepción nativa
