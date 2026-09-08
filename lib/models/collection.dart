@@ -1,5 +1,5 @@
-
 class RecipeCollection {
+  final int? revision;
   final String id;
   final String name;
   final String? description;
@@ -10,6 +10,7 @@ class RecipeCollection {
   final bool isMaster;
 
   RecipeCollection({
+    this.revision,
     required this.id,
     required this.name,
     this.description,
@@ -29,7 +30,7 @@ class RecipeCollection {
       'recipeIds': recipeIds,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
-      'isMaster' : isMaster,
+      'isMaster': isMaster,
     };
   }
 

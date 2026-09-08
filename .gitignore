@@ -50,3 +50,8 @@ config/*.local.json
 .env
 .env.*
 !.env.example
+
+# Private recovery exports and session cache (never commit user data)
+/legacy-quarantine/
+/recovery-exports/
+/cloud-cache.sqlite*

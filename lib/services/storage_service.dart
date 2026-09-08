@@ -1,3 +1,5 @@
+import '../config/cloud_runtime.dart';
+import '../repositories/app_repositories.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
@@ -6,9 +8,15 @@ import '../models/recipe.dart';
 
 class StorageService {
   static const String _recipesKey = 'recipes';
-  static Future<void>? _pending;
 
   static Future<List<Recipe>> getRecipes() async {
+    if (CloudRuntime.enabled) {
+      return await AppRepositories.library?.readRecipes() ?? [];
+    }
+    return getLegacyRecipes();
+  }
+
+  static Future<List<Recipe>> getLegacyRecipes() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getStringList(_recipesKey) ?? [];
     final recipes = <Recipe>[];
@@ -45,62 +53,11 @@ class StorageService {
     });
   }
 
-  static Future<void> _mutate(void Function(List<String>) change) {
-    final next = (_pending ?? Future<void>.value()).then((_) async {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = List<String>.from(prefs.getStringList(_recipesKey) ?? []);
-      change(raw);
-      if (!await prefs.setStringList(_recipesKey, raw)) {
-        throw StateError('No se pudo guardar la receta local.');
-      }
-    });
-    final barrier = next.then<void>(
-      (_) {},
-      onError: (Object _, StackTrace _) {},
-    );
-    _pending = barrier;
-    return next.whenComplete(() {
-      if (identical(_pending, barrier)) _pending = null;
-    });
-  }
-
-  static String? _id(String raw) {
-    try {
-      final data = jsonDecode(raw);
-      return data is Map ? data['id'] as String? : null;
-    } catch (_) {
-      return null;
-    }
-  }
-
-  static Future<void> saveRecipe(Recipe recipe) => _mutate((raw) {
-    if (recipe.id.trim().isEmpty || raw.any((r) => _id(r) == recipe.id)) {
-      throw StateError('La receta nueva requiere un ID único y no vacío.');
-    }
-    raw.add(jsonEncode(recipe.toJson()));
-  });
-
-  static Future<void> updateRecipe(Recipe recipe) => _mutate((raw) {
-    final matches = [
-      for (var i = 0; i < raw.length; i++)
-        if (_id(raw[i]) == recipe.id) i,
-    ];
-    if (recipe.id.trim().isEmpty || matches.length != 1) {
-      throw StateError(
-        'No se puede editar un ID legacy ausente o ambiguo. Exporta una copia primero.',
-      );
-    }
-    raw[matches.single] = jsonEncode({
-      ...Map<String, dynamic>.from(jsonDecode(raw[matches.single])),
-      ...recipe.toJson(),
-    });
-  });
-
-  static Future<void> deleteRecipe(String id) => _mutate((raw) {
-    final matches = raw.where((r) => _id(r) == id).length;
-    if (id.trim().isEmpty || matches != 1) {
-      throw StateError('No se puede eliminar un ID legacy ausente o ambiguo.');
-    }
-    raw.removeWhere((r) => _id(r) == id);
-  });
+  // Retained compatibility entry points fail explicitly; legacy storage is read-only.
+  static Future<void> saveRecipe(Recipe recipe) async =>
+      throw StateError('Legacy es de solo lectura. Usa el repositorio cloud.');
+  static Future<void> updateRecipe(Recipe recipe) async =>
+      throw StateError('Legacy es de solo lectura. Usa el rescate revisado.');
+  static Future<void> deleteRecipe(String id) async =>
+      throw StateError('No se eliminan datos legacy.');
 }

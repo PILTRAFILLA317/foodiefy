@@ -1,3 +1,5 @@
+import '../widgets/collection_creation_dialog.dart';
+import '../repositories/app_repositories.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -73,7 +75,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
       final filtered = _filterRecipes(recipes, _searchController.text);
       setState(() {
         _recipeLookup = recipeLookup;
-        _recipes = recipes;
+        _recipes = List<Recipe>.from(recipes);
         _filteredRecipes = filtered;
         _isLoading = false;
       });
@@ -121,7 +123,11 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
             onPressed: () => Navigator.pop(context, _hasChanges),
           ),
           title: Text(
-            widget.recipeCollection.name,
+            AppRepositories.library?.collections
+                    .where((c) => c.id == widget.recipeCollection.id)
+                    .firstOrNull
+                    ?.name ??
+                widget.recipeCollection.name,
             style: const TextStyle(
               color: Colors.black,
               fontWeight: FontWeight.w900,
@@ -129,7 +135,30 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
           ),
           backgroundColor: Colors.white,
           surfaceTintColor: Colors.white,
-          actions: const [],
+          actions: [
+            if (!widget.recipeCollection.isMaster &&
+                (AppRepositories.library?.canWrite ?? false))
+              IconButton(
+                icon: const Icon(Icons.edit),
+                tooltip: 'Editar colección',
+                onPressed: () async {
+                  final current = AppRepositories.library!.collections
+                      .where((c) => c.id == widget.recipeCollection.id)
+                      .firstOrNull;
+                  if (current == null) return;
+                  await showDialog<void>(
+                    context: context,
+                    builder: (_) => CollectionCreationDialog(
+                      collection: current,
+                      onImportSuccess: () {
+                        _hasChanges = true;
+                      },
+                    ),
+                  );
+                  if (mounted) setState(() {});
+                },
+              ),
+          ],
         ),
         backgroundColor: Colors.white,
         body: Padding(
@@ -297,13 +326,17 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                       child: collections.isEmpty
                           ? Center(
                               child: Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 24.0),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 24.0,
+                                ),
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: const [
-                                    Icon(Icons.collections_bookmark,
-                                        color: Colors.grey, size: 36),
+                                    Icon(
+                                      Icons.collections_bookmark,
+                                      color: Colors.grey,
+                                      size: 36,
+                                    ),
                                     SizedBox(height: 12),
                                     Text(
                                       'Aún no tienes colecciones creadas.',
@@ -333,9 +366,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                                 final isSelected =
                                     selections[collection.id] ?? false;
                                 final previewRecipe =
-                                    _findFirstRecipeInCollection(
-                                  collection,
-                                );
+                                    _findFirstRecipeInCollection(collection);
 
                                 return GestureDetector(
                                   onTap: () {
@@ -370,7 +401,8 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                                     child: Row(
                                       children: [
                                         _buildCollectionThumbnail(
-                                            previewRecipe),
+                                          previewRecipe,
+                                        ),
                                         const SizedBox(width: 12),
                                         Expanded(
                                           child: Text(
@@ -483,28 +515,14 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
     }
 
     setState(() => _isLoading = true);
-
-    final futures = <Future<void>>[];
-    for (final collection in collections) {
-      final shouldContain = selections[collection.id] ?? false;
-      final currentlyContains = collection.recipeIds.contains(recipe.id);
-
-      if (shouldContain && !currentlyContains) {
-        futures.add(service.addRecipeToCollection(collection.id, recipe.id));
-      } else if (!shouldContain && currentlyContains) {
-        futures.add(
-          service.removeRecipeFromCollection(collection.id, recipe.id),
-        );
-      }
-    }
-
-    final hasChanges = futures.isNotEmpty;
-
+    var savedMembership = false;
     try {
-      if (hasChanges) {
-        await Future.wait(futures);
-        _hasChanges = true;
-      }
+      await service.setRecipeCollections(recipe.id, [
+        for (final collection in collections)
+          if (selections[collection.id] == true) collection.id,
+      ]);
+      _hasChanges = true;
+      savedMembership = true;
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -517,7 +535,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
       }
     }
 
-    if (hasChanges) {
+    if (savedMembership) {
       final currentSelection = selections[widget.recipeCollection.id];
       if (currentSelection != null) {
         if (currentSelection) {
@@ -604,22 +622,8 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
 
     setState(() => _isLoading = true);
 
-    final service = CollectionService();
-    final collections = await service.getCollections();
-
-    final futures = <Future<void>>[];
-    for (final collection in collections) {
-      if (collection.recipeIds.contains(recipe.id)) {
-        futures.add(
-          service.removeRecipeFromCollection(collection.id, recipe.id),
-        );
-      }
-    }
-
-    futures.add(RecipeService.deleteRecipe(recipe.id));
-
     try {
-      await Future.wait(futures);
+      await RecipeService.deleteRecipe(recipe.id);
       _hasChanges = true;
       _recipeLookup.remove(recipe.id);
       _recipes.removeWhere((r) => r.id == recipe.id);
@@ -769,12 +773,24 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
     if (result == 'manual') {
       createdRecipe = await Navigator.push<Recipe?>(
         context,
-        MaterialPageRoute(builder: (_) => const CreateRecipeScreen()),
+        MaterialPageRoute(
+          builder: (_) => CreateRecipeScreen(
+            initialCollectionId: widget.recipeCollection.isMaster
+                ? null
+                : widget.recipeCollection.id,
+          ),
+        ),
       );
     } else if (result == 'import') {
       createdRecipe = await Navigator.push<Recipe?>(
         context,
-        MaterialPageRoute(builder: (_) => const ImportRecipeScreen()),
+        MaterialPageRoute(
+          builder: (_) => ImportRecipeScreen(
+            initialCollectionId: widget.recipeCollection.isMaster
+                ? null
+                : widget.recipeCollection.id,
+          ),
+        ),
       );
     }
 
@@ -784,12 +800,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
   }
 
   Future<void> _handleRecipeCreated(Recipe recipe) async {
-    if (!widget.recipeCollection.isMaster) {
-      await CollectionService().addRecipeToCollection(
-        widget.recipeCollection.id,
-        recipe.id,
-      );
-    }
+    if (!mounted) return;
 
     setState(() {
       _hasChanges = true;

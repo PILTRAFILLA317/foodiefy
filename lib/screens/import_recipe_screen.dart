@@ -1,3 +1,5 @@
+import '../repositories/app_repositories.dart';
+import 'auth/login_screen.dart';
 import '../config/app_config.dart';
 import 'dart:async';
 import 'dart:math';
@@ -13,7 +15,8 @@ import '../utils/lottie_rules.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 
 class ImportRecipeScreen extends StatefulWidget {
-  const ImportRecipeScreen({super.key});
+  const ImportRecipeScreen({super.key, this.initialCollectionId});
+  final String? initialCollectionId;
 
   @override
   State<ImportRecipeScreen> createState() => _ImportRecipeScreenState();
@@ -419,6 +422,16 @@ class _ImportRecipeScreenState extends State<ImportRecipeScreen> {
   String? _errorMessage;
 
   @override
+  void initState() {
+    super.initState();
+    AppRepositories.session.pendingImport().then((url) {
+      if (mounted && url != null && _urlController.text.isEmpty) {
+        _urlController.text = url;
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _service.close();
     _urlController.dispose();
@@ -429,7 +442,7 @@ class _ImportRecipeScreenState extends State<ImportRecipeScreen> {
     if (AppConfig.current.rescueMode) {
       setState(
         () => _errorMessage =
-            'Importación cloud deshabilitada en rescate local. Puedes crear recetas manualmente.',
+            'Importación cloud deshabilitada en rescate local. Configura cloud e inicia sesión.',
       );
       return;
     }
@@ -438,6 +451,16 @@ class _ImportRecipeScreenState extends State<ImportRecipeScreen> {
       setState(() {
         _errorMessage = 'Ingresa un enlace válido.';
       });
+      return;
+    }
+
+    await AppRepositories.session.savePendingImport(url);
+    if (!mounted) return;
+    if (AppRepositories.session.ownerId == null) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+      );
       return;
     }
 
@@ -487,7 +510,12 @@ class _ImportRecipeScreenState extends State<ImportRecipeScreen> {
 
     final createdRecipe = await Navigator.push<Recipe?>(
       context,
-      MaterialPageRoute(builder: (_) => CreateRecipeScreen(template: recipe)),
+      MaterialPageRoute(
+        builder: (_) => CreateRecipeScreen(
+          template: recipe,
+          initialCollectionId: widget.initialCollectionId,
+        ),
+      ),
     );
 
     if (!mounted) return;

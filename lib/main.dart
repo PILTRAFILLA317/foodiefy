@@ -3,6 +3,8 @@ import 'screens/home_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'config/app_config.dart';
 import 'config/cloud_runtime.dart';
+import 'repositories/app_repositories.dart';
+import 'screens/auth/account_form.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,6 +18,7 @@ Future<void> main() async {
       );
       CloudRuntime.client = Supabase.instance.client;
     }
+    await AppRepositories.initialize();
     runApp(const MyApp());
   } on ConfigurationException catch (error) {
     runApp(ConfigurationErrorApp(message: error.message));
@@ -41,34 +44,55 @@ class ConfigurationErrorApp extends StatelessWidget {
   );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
 
+class _MyAppState extends State<MyApp> {
+  String? _shownOwner;
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Foodiefy',
-      builder: (context, child) => AppConfig.current.rescueMode
-          ? Banner(
-              message: 'RESCATE LOCAL',
-              location: BannerLocation.topEnd,
-              child: child ?? const SizedBox.shrink(),
-            )
-          : child ?? const SizedBox.shrink(),
-      theme: ThemeData(
-        primarySwatch: Colors.orange,
-        secondaryHeaderColor: Colors.deepOrange,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-        textSelectionTheme: const TextSelectionThemeData(
-          cursorColor: Colors.black,
-        ),
-        inputDecorationTheme: const InputDecorationTheme(
-          labelStyle: TextStyle(color: Colors.black),
-          floatingLabelStyle: TextStyle(color: Colors.black),
-        ),
-      ),
-      home: const HomeScreen(),
-      debugShowCheckedModeBanner: false,
+    return ListenableBuilder(
+      listenable: AppRepositories.session,
+      builder: (context, _) {
+        final owner = AppRepositories.session.ownerId;
+        if (_shownOwner != owner) {
+          PaintingBinding.instance.imageCache.clear();
+          PaintingBinding.instance.imageCache.clearLiveImages();
+          _shownOwner = owner;
+        }
+        return MaterialApp(
+          key: ValueKey(
+            '${AppRepositories.session.ownerId}:${AppRepositories.session.recoveringPassword}',
+          ),
+          title: 'Foodiefy',
+          builder: (context, child) => AppConfig.current.rescueMode
+              ? Banner(
+                  message: 'RESCATE LOCAL',
+                  location: BannerLocation.topEnd,
+                  child: child ?? const SizedBox.shrink(),
+                )
+              : child ?? const SizedBox.shrink(),
+          theme: ThemeData(
+            primarySwatch: Colors.orange,
+            secondaryHeaderColor: Colors.deepOrange,
+            visualDensity: VisualDensity.adaptivePlatformDensity,
+            textSelectionTheme: const TextSelectionThemeData(
+              cursorColor: Colors.black,
+            ),
+            inputDecorationTheme: const InputDecorationTheme(
+              labelStyle: TextStyle(color: Colors.black),
+              floatingLabelStyle: TextStyle(color: Colors.black),
+            ),
+          ),
+          home: AppRepositories.session.recoveringPassword
+              ? const AccountForm(mode: AccountMode.newPassword)
+              : const HomeScreen(),
+          debugShowCheckedModeBanner: false,
+        );
+      },
     );
   }
 }

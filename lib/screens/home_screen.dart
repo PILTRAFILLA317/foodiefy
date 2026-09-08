@@ -1,3 +1,6 @@
+import '../repositories/app_repositories.dart';
+import '../repositories/library_repository.dart';
+import 'auth/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:foodiefy/models/recipe.dart';
 import 'package:foodiefy/models/collection.dart';
@@ -29,8 +32,25 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    AppRepositories.library?.addListener(_libraryChanged);
     _loadCollections();
     _loadAllRecipes();
+  }
+
+  void _libraryChanged() {
+    if (!mounted) return;
+    final library = AppRepositories.library!;
+    setState(() {
+      _allRecipes = library.recipes;
+      _collections = library.collections;
+      _applyCollectionFilter();
+    });
+  }
+
+  @override
+  void dispose() {
+    AppRepositories.library?.removeListener(_libraryChanged);
+    super.dispose();
   }
 
   Future<void> _loadCollections() async {
@@ -98,6 +118,19 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 16.0),
         child: Column(
           children: [
+            if (AppRepositories.library?.message != null)
+              Text(AppRepositories.library!.message!),
+            if (AppRepositories.library != null)
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: AppRepositories.library!.loading
+                      ? null
+                      : AppRepositories.library!.refresh,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Actualizar'),
+                ),
+              ),
             TextField(
               cursorColor: Colors.black,
               decoration: InputDecoration(
@@ -189,8 +222,16 @@ class _HomeScreenState extends State<HomeScreen> {
                       }
                     },
                     onDelete: () async {
-                      await CollectionService().deleteCollection(collection);
-                      await _loadCollections();
+                      try {
+                        await CollectionService().deleteCollection(collection);
+                        await _loadCollections();
+                      } catch (error) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(cloudError(error))),
+                          );
+                        }
+                      }
                     },
                   );
                 },
@@ -220,6 +261,23 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _showAddRecipeOptions() async {
+    if (!(AppRepositories.library?.canWrite ?? false)) {
+      if (AppRepositories.session.configured) {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'El rescate local es de solo lectura. Configura cloud e inicia sesión para guardar.',
+            ),
+          ),
+        );
+      }
+      return;
+    }
     final result = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: Colors.white,

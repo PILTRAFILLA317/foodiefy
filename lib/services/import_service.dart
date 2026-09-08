@@ -1,3 +1,4 @@
+import '../repositories/app_repositories.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -12,14 +13,24 @@ import '../models/recipe.dart';
 class ImportRecipeService {
   ImportRecipeService({
     http.Client? client,
+    String? Function()? accessToken,
     AppConfig? config,
     this.requestTimeout = const Duration(seconds: 30),
     Duration connectionTimeout = const Duration(seconds: 5),
   }) : _client =
            client ??
            IOClient(HttpClient()..connectionTimeout = connectionTimeout),
-       _config = config ?? AppConfig.current;
+       _config = config ?? AppConfig.current,
+       _accessToken =
+           accessToken ??
+           (() => AppRepositories
+               .session
+               .client
+               ?.auth
+               .currentSession
+               ?.accessToken);
 
+  final String? Function() _accessToken;
   final http.Client _client;
   final AppConfig _config;
   final Duration requestTimeout;
@@ -31,6 +42,13 @@ class ImportRecipeService {
       throw ImportRecipeException(
         'Importación cloud deshabilitada en rescate local.',
         code: 'disabled',
+      );
+    }
+    final token = _accessToken();
+    if (token == null) {
+      throw ImportRecipeException(
+        'Inicia sesión antes de importar.',
+        code: 'unauthorized',
       );
     }
     final source = Uri.tryParse(url);
@@ -55,6 +73,7 @@ class ImportRecipeService {
             headers: {
               'Content-Type': 'application/json',
               'Accept': 'application/json',
+              'Authorization': 'Bearer $token',
             },
             body: jsonEncode({'url': url}),
           )

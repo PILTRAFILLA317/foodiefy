@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../models/recipe.dart';
 import '../services/recipe_service.dart';
+import '../repositories/library_repository.dart';
 // import '../widgets/auth_required_dialog.dart';
 import '../widgets/time_picker_widget.dart';
 import 'package:uuid/uuid.dart';
@@ -13,8 +14,14 @@ import 'package:uuid/uuid.dart';
 class CreateRecipeScreen extends StatefulWidget {
   final Recipe? template;
   final bool isEditing;
+  final String? initialCollectionId;
 
-  const CreateRecipeScreen({super.key, this.template, this.isEditing = false});
+  const CreateRecipeScreen({
+    super.key,
+    this.template,
+    this.isEditing = false,
+    this.initialCollectionId,
+  });
 
   @override
   State<CreateRecipeScreen> createState() => _CreateRecipeScreenState();
@@ -37,7 +44,6 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
   final List<String> _steps = [];
   File? _selectedImage;
   String? _remoteImagePath;
-  bool _isPublic = false;
   bool _isSaving = false;
   int? _prepTimeMinutes;
   late final bool _isImportedSource;
@@ -56,7 +62,6 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
       _quantityController.text = template.finalQuantity ?? '';
       _ingredients.addAll(template.ingredients);
       _steps.addAll(template.steps);
-      _isPublic = template.isPublic;
       _prepTimeMinutes = template.prepTimeMinutes;
 
       final macros = template.macronutrients;
@@ -802,59 +807,6 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
     );
   }
 
-  Widget _buildVisibilitySection() {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    _isPublic ? Icons.public : Icons.lock,
-                    color: Colors.orange,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Text(
-                  'Visibilidad',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            SwitchListTile(
-              title: const Text('Hacer pública'),
-              subtitle: Text(
-                _isPublic
-                    ? 'Otros usuarios podrán ver esta receta'
-                    : 'Solo tú podrás ver esta receta',
-              ),
-              value: _isPublic,
-              activeThumbColor: Colors.orange,
-              onChanged: (value) {
-                if (value) {
-                  _showAuthRequiredForPublic();
-                } else {
-                  setState(() => _isPublic = false);
-                }
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   void _pickImage() async {
     try {
       final picker = ImagePicker();
@@ -926,7 +878,10 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
       final macros = _collectMacronutrients();
 
       final recipe = Recipe(
-        id: _id ?? Uuid().v4(),
+        id: _id ??= const Uuid().v4(),
+        ownerId: widget.isEditing ? widget.template?.ownerId : null,
+        revision: widget.isEditing ? widget.template?.revision : null,
+        cloudDraft: widget.template?.cloudDraft,
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim().isEmpty
             ? null
@@ -938,7 +893,7 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
         steps: _steps,
         imagePath: _selectedImage?.path ?? _remoteImagePath,
         sourceUrl: widget.template?.sourceUrl,
-        isPublic: _isPublic,
+        isPublic: false,
         isImported: _isImportedSource,
         prepTimeMinutes: _prepTimeMinutes,
         macronutrients: macros,
@@ -957,7 +912,10 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
       if (widget.isEditing) {
         await RecipeService.updateRecipe(recipe);
       } else {
-        await RecipeService.createRecipe(recipe);
+        await RecipeService.createRecipe(
+          recipe,
+          collectionId: widget.initialCollectionId,
+        );
       }
 
       if (mounted) {
@@ -967,7 +925,7 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error al guardar: $e'),
+            content: Text(cloudError(e)),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
@@ -978,24 +936,6 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
         setState(() => _isSaving = false);
       }
     }
-  }
-
-  void _showAuthRequiredForPublic() {
-    // showDialog(
-    //   context: context,
-    //   builder: (context) => AuthRequiredDialog(
-    //     message: 'Para hacer pública una receta necesitas crear una cuenta.',
-    //     onAuthPressed: () {
-    //       Navigator.pop(context);
-    //       Navigator.push(
-    //         context,
-    //         MaterialPageRoute(
-    //           builder: (context) => const AuthPlaceholderScreen(),
-    //         ),
-    //       );
-    //     },
-    //   ),
-    // );
   }
 
   RecipeMacronutrients? _collectMacronutrients() {

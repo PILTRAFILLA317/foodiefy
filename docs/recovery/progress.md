@@ -1,5 +1,80 @@
 # Progreso de recuperación · Foodiefy Flutter
 
+## Fase 04 · 2026-09-08
+
+**Persistencia cloud privada y rescate legacy implementados sobre los repositorios existentes. Verificación local; no se avanza a la fase siguiente.**
+
+### Decisiones y archivos afectados
+
+- `lib/repositories/`: `SessionRepository`, `LibraryRepository` (recetas y colecciones), gateway Supabase inyectable, adaptador v1 y caché Drift/SQLite por `owner_id`. `ChangeNotifier` para sesión/listas; formularios conservan `setState`.
+- `lib/recovery/legacy_recovery.dart` y pantalla de rescate: export raw previo, backup redundante, SHA-256, dry-run, orden/UUID por ocurrencia, correcciones sobre copias, resolución explícita de referencias, imágenes elegidas y plan reanudable vinculado a una cuenta. No se leyó ni migró contenido real del dispositivo del propietario.
+- Fachadas en servicios anteriores: se retiraron escrituras best-effort en `user_recipes`/`collection_recipes` y el merge automático legacy. SharedPreferences legacy conserva lectura/exportación; sus escrituras fallan explícitamente.
+- Pantallas existentes conectadas a repositorios; registro/login, confirmación pendiente, recuperación y callback. Botones OAuth y cuotas ficticias retirados del flujo de cuentas. Los enlaces de importación se conservan durante login. ImportService exige sesión y envía su bearer sin imprimirlo.
+- Cambiar de cuenta/logout limpia estado/caché, invalida resultados tardíos y reemplaza todas las rutas privadas. También limpia la caché de imágenes de Flutter. El modo sin cuenta no asigna datos al siguiente usuario.
+- Manifiestos iOS/Android para `io.supabase.foodiefy://login-callback`; Android debug permite HTTP solo en loopback/emulador. Los ajustes Gradle previos del propietario permanecen intactos.
+- `pubspec.yaml`/lock: Supabase Flutter 2.10.3 conservado; Drift 2.34.3 y SQLite3 3.5.2 fijados; path_provider 2.1.5, crypto 3.0.7 y url_launcher 6.3.2 pasan a dependencias directas sin cambiar sus versiones. Dart mínimo 3.10 por Drift. No se ejecutó actualización masiva.
+- `contracts/`: snapshot regenerado desde el hermano API para admitir URL/plataforma desconocidas como `null`. `tool/` contiene configurador público y prueba HTTP con guardia de loopback. `config/supabase.local.json` creado y excluido de Git.
+
+### Pruebas y resultados reales
+
+| Comando/prueba | Resultado |
+| --- | --- |
+| Flutter/Dart y `flutter pub get` | PASS: Flutter 3.47.2, Dart 3.13.2; lockfile resuelto sin actualización masiva. |
+| `flutter test --no-pub --reporter compact` | **PASS, 46 tests; 1 skip explícito** (HTTP local desactivado en la suite por defecto). La prueba HTTP se ejecutó aparte y pasó. |
+| `python3 tool/test_supabase_local.py` | **PASS, 1 test HTTP real**, ejecución final de 55 s: registro/login con dos cuentas sintéticas, guardar/reabrir en segundo cliente, editar, conflicto, colecciones/renombrar, mover/quitar, rollback de creación+asociación, borrar, Storage privado y aislamiento A/B/logout. |
+| Tests de repositorio/rescate | **PASS, 9 tests focalizados finales**: lectura offline sin guardado ficticio, replay tras respuesta perdida, aislamiento/caché/respuestas tardías, reapertura, contrato, IDs vacíos/duplicados, relación ambigua, checksum, datos ilegibles, copia de imágenes y subida de una sola imagen elegida, enlace pendiente. |
+| Auth y raíz de navegación | **PASS, 5 tests**: confirmación pendiente sin sesión, solicitud PKCE de recuperación y guardia de actualización, falta de configuración, eliminación de rutas privadas A→B y ausencia de usuario anónimo implícito. |
+| `flutter analyze --no-pub --no-fatal-infos` | **PASS: 0 errores, 0 warnings; 12 infos preexistentes** sobre underscores/deprecaciones gráficas. Sin el flag, esos infos hacen que el comando termine con código 1; no se presenta como análisis completamente limpio. |
+| XML Android / plist iOS | PASS de parseo y callback configurado. No demuestra navegación nativa. |
+| Contrato y SQL del hermano | PASS: 19 pytest, 50 pgTAP, advisors/lint local sin incidencias; detalle en progress del API. |
+| `git diff --check` | PASS en ambos repositorios. |
+| App nativa, callback real de email en iOS/Android, dos simuladores/dispositivos y modo avión físico | **NO EJECUTADO**. |
+| Rescate de datos reales, staging/producción, IA real/pagos, builds de app/contenedores, distribución | **NO EJECUTADO**. |
+
+La primera prueba HTTP falló por configurar PKCE sin storage en el arnés de cliente puro; se corrigió el arnés para email/contraseña. La app conserva PKCE con el storage del SDK y tiene tests específicos de sus solicitudes. Un fixture inicial de imagen contenía solo su cabecera y fue rechazado correctamente: se sustituyó por un PNG sintético completo y el test focalizado pasó. Esas ejecuciones fallidas no se cuentan como PASS. El índice conservaba la generación de Fase 03; las comprobaciones de cobertura señalaron cambios/archivos nuevos y SQL parcial. Las decisiones finales se apoyan en fuente actual y pruebas, no en una supuesta auditoría completa del grafo.
+
+### Operación manual, límites y siguiente entrada
+
+Seguir [phase04.md](phase04.md): iniciar/reiniciar solo el Supabase local, usar `config/supabase.local.json`, probar cuenta A en dos dispositivos, logout/B, modo avión, recuperación por deep link y rescate interrumpido/repetido. En la app: **Tu cuenta → Rescatar datos antiguos / exportar backup → revisar → elegir y confirmar cuenta**. No hay una cuenta real autorizada para el rescate y el agente no ejecutó esa importación.
+
+La prueba de HTTP local usa clientes Dart, no dos apps nativas. Las fotos cloud utilizan URLs firmadas caducables; su descarga offline y la eliminación automática de imágenes huérfanas no pertenecen a esta fase. El plan de rescate cubre una instantánea; el backup no se borra. Staging exige autorización específica de proyecto/entorno antes de cualquier operación remota. La siguiente entrada es la verificación manual de Fase 04, no implementar Fase 05.
+
+Commit propuesto, **no ejecutado**: `feat: add cloud persistence and lossless legacy recovery`.
+
+## Fase 03 · 2026-09-07
+
+**Snapshot de contrato recibido. No se integra persistencia ni se continúa a Fase 04.**
+
+### Cambios y límites
+
+- `contracts/` contiene el JSON Schema `RecipeDraft v1`, manifest de versión y
+  hashes, dos fixtures válidos y tres erróneos copiados desde `foodiefy_api`.
+- La actualización es reproducible con
+  `.venv-recovery/bin/python -m scripts.generate_contracts --sync-flutter
+  ../foodiefy/contracts` desde el hermano API; `contracts/README.md` documenta el
+  flujo. El snapshot no se edita a mano.
+- No se tocaron modelos Dart, navegación, servicios legacy, Supabase runtime,
+  UI, auth ni almacenamiento local. El enlace existente en `supabase/.temp` se
+  conservó sin operaciones remotas.
+- No hay `service_role`, secreto de IA/base de datos ni webhook en el snapshot.
+  “Todas” sigue siendo una decisión virtual de UI; Flutter no envía UUID `0`.
+
+### Pruebas reales
+
+| Prueba | Resultado |
+| --- | --- |
+| Generación + copia desde API y comprobación `--check` | PASS |
+| Hashes del schema/fixtures mediante manifest y tests API | PASS dentro de los 18 tests del hermano |
+| Flutter test/analyze/build, simulador/dispositivo | **NO EJECUTADO**; no cambió código Dart/nativo |
+| Supabase remoto/staging | **NO EJECUTADO** |
+
+Siguiente punto: tras la verificación manual de dos usuarios contra Supabase
+local, la Fase 04 podrá diseñar la adaptación explícita de estos campos a Dart,
+persistencia remota y rescate legacy. No asumir que el snapshot ya sincroniza la
+app.
+
+Commit propuesto para este repositorio, **no ejecutado**: `chore: sync recipe contract v1`.
+
 ## Fase 01 · 2026-09-07
 
 **Implementación de rescate terminada. Tests focalizados PASS; análisis global FAIL por trabajo previo. No se continúa a Fase 02.**

@@ -1,4 +1,7 @@
 class Recipe {
+  final String? ownerId;
+  final int? revision;
+  final Map<String, dynamic>? cloudDraft;
   final String id;
   final String title;
   final String? description;
@@ -19,6 +22,9 @@ class Recipe {
   final DateTime createdAt;
 
   Recipe({
+    this.ownerId,
+    this.revision,
+    this.cloudDraft,
     required this.id,
     required this.title,
     this.description,

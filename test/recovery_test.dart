@@ -52,6 +52,7 @@ void main() {
   for (final id in [null, '', ' ', 'provider-id']) {
     test('new imports use distinct UUIDs for provider id $id', () async {
       final service = ImportRecipeService(
+        accessToken: () => 'fixture-token',
         config: testConfig(),
         client: MockClient((request) async {
           expect(request.url.path, '/api/analyze-recipe');
@@ -79,9 +80,8 @@ void main() {
       );
       expect(first.id, isNot(second.id));
       expect(first.macronutrients, isNull);
-      await StorageService.saveRecipe(first);
-      await StorageService.saveRecipe(second);
-      expect((await StorageService.getRecipes()).length, 2);
+      await expectLater(StorageService.saveRecipe(first), throwsStateError);
+      expect((await StorageService.getRecipes()), isEmpty);
     });
   }
 
@@ -129,6 +129,7 @@ void main() {
   for (final (status, body, code) in cases) {
     test('import maps $status/$code', () async {
       final service = ImportRecipeService(
+        accessToken: () => 'fixture-token',
         config: testConfig(),
         client: MockClient((_) async => http.Response(body, status)),
       );
@@ -143,6 +144,7 @@ void main() {
   }
   test('request timeout is a domain error', () async {
     final service = ImportRecipeService(
+      accessToken: () => 'fixture-token',
       config: testConfig(),
       requestTimeout: const Duration(milliseconds: 5),
       client: MockClient((_) => Completer<http.Response>().future),
@@ -157,6 +159,7 @@ void main() {
   });
   test('rescue never sends HTTP', () async {
     final service = ImportRecipeService(
+      accessToken: () => 'fixture-token',
       client: MockClient((_) => throw StateError('network forbidden')),
     );
     addTearDown(service.close);
@@ -186,7 +189,10 @@ void main() {
         jsonDecode(await StorageService.exportLegacyJson())['recipes'],
         raw,
       );
-      await StorageService.saveRecipe(legacyRecipe('new'));
+      await expectLater(
+        StorageService.saveRecipe(legacyRecipe('new')),
+        throwsStateError,
+      );
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.getStringList('recipes')!.take(4), raw);
       await expectLater(
@@ -194,26 +200,28 @@ void main() {
         throwsStateError,
       );
       await expectLater(StorageService.deleteRecipe('old'), throwsStateError);
-      expect((await StorageService.getRecipes()).length, 4);
+      expect((await StorageService.getRecipes()).length, 3);
     },
   );
   test(
-    'create rejects empty/duplicate IDs and concurrent saves retain both',
+    'phase04 legacy writes are read-only and never mutate originals',
     () async {
+      final raw = jsonEncode(legacyRecipe('a').toJson());
+      SharedPreferences.setMockInitialValues({
+        'recipes': [raw],
+      });
       await expectLater(
-        StorageService.saveRecipe(legacyRecipe('')),
-        throwsStateError,
-      );
-      await Future.wait([
-        StorageService.saveRecipe(legacyRecipe('a')),
         StorageService.saveRecipe(legacyRecipe('b')),
-      ]);
-      await expectLater(
-        StorageService.saveRecipe(legacyRecipe('a')),
         throwsStateError,
       );
-      await StorageService.updateRecipe(legacyRecipe('a'));
-      expect((await StorageService.getRecipes()).length, 2);
+      await expectLater(
+        StorageService.updateRecipe(legacyRecipe('a')),
+        throwsStateError,
+      );
+      await expectLater(StorageService.deleteRecipe('a'), throwsStateError);
+      expect((await SharedPreferences.getInstance()).getStringList('recipes'), [
+        raw,
+      ]);
     },
   );
   test('config enforces public keys and HTTPS outside local', () {
@@ -259,7 +267,10 @@ void main() {
       const MaterialApp(home: UserScreen(savedRecipes: 0)),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Exportar datos legacy'), findsOneWidget);
+    expect(
+      find.text('Rescatar datos antiguos / exportar backup'),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
   });
   testWidgets('legacy recipe shows nutrition unavailable', (tester) async {
@@ -270,7 +281,7 @@ void main() {
     expect(find.text('Nutrición no disponible'), findsOneWidget);
     expect(find.text('3500'), findsNothing);
   });
-  testWidgets('editing a saved template does not add a duplicate', (
+  testWidgets('legacy editing is rejected and original remains intact', (
     tester,
   ) async {
     final recipe = legacyRecipe('old');
@@ -292,6 +303,7 @@ void main() {
   ) async {
     final response = Completer<http.Response>();
     final service = ImportRecipeService(
+      accessToken: () => 'fixture-token',
       config: testConfig(),
       client: MockClient((_) => response.future),
     );

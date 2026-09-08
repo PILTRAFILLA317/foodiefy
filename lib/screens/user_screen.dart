@@ -1,351 +1,90 @@
-import 'package:flutter/services.dart';
-import '../config/cloud_runtime.dart';
-import '../services/storage_service.dart';
 import 'package:flutter/material.dart';
+import '../repositories/app_repositories.dart';
+import 'auth/account_form.dart';
+import 'legacy_recovery_screen.dart';
 
-import 'package:supabase_flutter/supabase_flutter.dart';
-
-import 'auth/login_screen.dart';
-import 'auth/register_screen.dart';
-import 'pricing_screen.dart';
-import '../utils/auth_service.dart';
-
-class UserScreen extends StatefulWidget {
-  static const int freeRecipeLimit = 10;
-
-  final int savedRecipes;
-
+class UserScreen extends StatelessWidget {
   const UserScreen({super.key, required this.savedRecipes});
-
+  final int savedRecipes;
   @override
-  State<UserScreen> createState() => _UserScreenState();
-}
-
-class _UserScreenState extends State<UserScreen> {
-  late final Stream<AuthState> _authStream;
-  int _localSyncedRecipes = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _localSyncedRecipes = widget.savedRecipes;
-    _authStream = AuthService.authStateChanges();
-  }
-
-  Future<void> _exportLegacy() async {
-    final json = await StorageService.exportLegacyJson();
-    if (!mounted) return;
-    await showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Exportación legacy'),
-        content: const Text(
-          'Copia el JSON con recetas y colecciones y guárdalo en un archivo privado. Incluye los registros originales sin modificarlos; las imágenes locales se referencian por su ruta.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () async {
-              await Clipboard.setData(ClipboardData(text: json));
-              if (context.mounted) Navigator.pop(context);
-            },
-            child: const Text('Copiar JSON'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  int get _remainingRecipes {
-    final remaining = UserScreen.freeRecipeLimit - _localSyncedRecipes;
-    return remaining > 0 ? remaining : 0;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final remaining = _remainingRecipes;
-    if (!CloudRuntime.enabled) {
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: AppRepositories.session,
+    builder: (context, _) {
+      final session = AppRepositories.session;
       return Scaffold(
-        appBar: AppBar(title: const Text('Tu cuenta · Rescate local')),
-        body: Padding(
+        appBar: AppBar(title: const Text('Tu cuenta')),
+        body: ListView(
           padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                'Autenticación e importación cloud deshabilitadas. Tus recetas locales siguen disponibles.',
-              ),
-              const SizedBox(height: 24),
+          children: [
+            CircleAvatar(
+              radius: 48,
+              backgroundColor: Colors.grey.shade200,
+              child: const Icon(Icons.person, size: 48, color: Colors.black),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              session.email ?? 'Rescate y lectura local',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              session.ownerId == null
+                  ? 'Necesitas una cuenta para guardar e importar en cloud. Los datos antiguos solo se trasladan después de revisarlos y confirmar su propietario.'
+                  : 'Tus recetas son privadas. Los guardados se confirman en el servidor.',
+            ),
+            if (session.error != null) Text(session.error!),
+            const SizedBox(height: 24),
+            if (session.ownerId == null && session.configured) ...[
               ElevatedButton(
-                onPressed: _exportLegacy,
-                child: const Text('Exportar datos legacy'),
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const AccountForm(mode: AccountMode.login),
+                  ),
+                ),
+                child: const Text('Iniciar sesión'),
+              ),
+              OutlinedButton(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        const AccountForm(mode: AccountMode.register),
+                  ),
+                ),
+                child: const Text('Crear cuenta'),
               ),
             ],
-          ),
+            OutlinedButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const LegacyRecoveryScreen()),
+              ),
+              child: const Text('Rescatar datos antiguos / exportar backup'),
+            ),
+            if (session.ownerId != null)
+              TextButton(
+                onPressed: () async {
+                  try {
+                    await session.signOut();
+                  } catch (_) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'No se pudo completar el cierre. Reintenta con conexión.',
+                          ),
+                        ),
+                      );
+                    }
+                  }
+                },
+                child: const Text('Cerrar sesión'),
+              ),
+          ],
         ),
       );
-    }
-
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.white,
-        foregroundColor: Colors.black,
-        title: const Text('Tu cuenta'),
-      ),
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: StreamBuilder<AuthState>(
-          stream: _authStream,
-          builder: (context, snapshot) {
-            final session = snapshot.data?.session;
-            final user = session?.user;
-            final isLoggedIn = user != null;
-
-            return LayoutBuilder(
-              builder: (context, constraints) {
-                return SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight: constraints.maxHeight,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const SizedBox(height: 12),
-                        Center(
-                          child: CircleAvatar(
-                            radius: 52,
-                            backgroundColor: Colors.grey.shade200,
-                            child: Text(
-                              user?.email?.substring(0, 1).toUpperCase() ??
-                                  '🙂',
-                              style: const TextStyle(
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        if (!isLoggedIn) ...[
-                          const Text(
-                            'Tus recetas no están sincronizadas todavía.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          const Text(
-                            'Regístrate o inicia sesión para sincronizarlas y acceder a ellas desde cualquier dispositivo.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 15,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          ElevatedButton(
-                            onPressed: () async {
-                              final result = await Navigator.of(context)
-                                  .push<bool>(
-                                    MaterialPageRoute(
-                                      builder: (_) => const RegisterScreen(),
-                                    ),
-                                  );
-                              if (!context.mounted || result != true) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Revisa tu correo para confirmar tu cuenta.',
-                                  ),
-                                ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.black,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                            ),
-                            child: const Text('Registrarme'),
-                          ),
-                          const SizedBox(height: 12),
-                          OutlinedButton(
-                            onPressed: () async {
-                              final result = await Navigator.of(context)
-                                  .push<bool>(
-                                    MaterialPageRoute(
-                                      builder: (_) => const LoginScreen(),
-                                    ),
-                                  );
-                              if (!context.mounted || result != true) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Sesión iniciada correctamente.',
-                                  ),
-                                ),
-                              );
-                            },
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.black,
-                              side: const BorderSide(
-                                color: Colors.black,
-                                width: 1.5,
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                            ),
-                            child: const Text('Iniciar sesión'),
-                          ),
-                        ] else ...[
-                          Text(
-                            user.email ?? 'Tu cuenta',
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          const Text(
-                            'Tus recetas se sincronizan automáticamente con la nube. Pulsa el botón si necesitas forzar la sincronización.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 15,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          ElevatedButton.icon(
-                            onPressed: () {
-                              setState(() {
-                                _localSyncedRecipes = widget.savedRecipes;
-                              });
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Sincronización solicitada.'),
-                                ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.black,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                            ),
-                            icon: const Icon(Icons.sync),
-                            label: const Text('Sincronizar mis recetas'),
-                          ),
-                          const SizedBox(height: 12),
-                          OutlinedButton(
-                            onPressed: () async {
-                              await AuthService.signOut();
-                              if (!context.mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Sesión cerrada correctamente.',
-                                  ),
-                                ),
-                              );
-                            },
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.black,
-                              side: const BorderSide(
-                                color: Colors.black,
-                                width: 1.5,
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                            ),
-                            child: const Text('Cerrar sesión'),
-                          ),
-                        ],
-                        const SizedBox(height: 32),
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF5F5F5),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Text(
-                                isLoggedIn ? 'Plan actual' : 'Plan gratuito',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                isLoggedIn
-                                    ? 'Tus recetas están seguras en la nube.'
-                                    : 'Te quedan $remaining de ${UserScreen.freeRecipeLimit} recetas gratis.',
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(fontSize: 14),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-                        const Text(
-                          '¿Necesitas más espacio?',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => const PricingScreen(),
-                              ),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.orange,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                          icon: const Icon(Icons.workspace_premium),
-                          label: const Text('Suscribirme a recetas ilimitadas'),
-                        ),
-                        const SizedBox(height: 24),
-                        const Text(
-                          'Con la suscripción tendrás recetas ilimitadas, sincronización multi-dispositivo y novedades antes que nadie.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 14, color: Colors.black54),
-                        ),
-                        const SizedBox(height: 24),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            );
-          },
-        ),
-      ),
-    );
-  }
+    },
+  );
 }
