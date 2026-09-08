@@ -1,5 +1,33 @@
 # Progreso de recuperación · Foodiefy Flutter
 
+## Fase 08 · 2026-09-08
+
+**Recibido contrato versionado de jobs. No se implementó integración móvil.**
+
+- Archivos: `contracts/imports.v1.schema.json`, `imports.v1.manifest.json`,
+  `contracts/README.md` y este progreso. Fuente única en el hermano API, generador
+  `scripts.generate_import_contract`; estados y stages separados sin porcentajes.
+- No cambian Dart, navegación, polling, RecipeDraft, persistencia ni dependencias.
+  El contrato no contiene secretos/configuración privada del servidor.
+- Generación `--check` y comparación byte a byte API/Flutter: **PASS**.
+  SHA-256 schema:
+  `96bf88da474f658d88326e6bb9be44852453679b56db3414b11e3a15eb387bc2`;
+  manifest: `b5b055279b5333ec92324d2db71a93d33f6c41a43b42527550b12d2453ea33ac`.
+- API: 159 tests (incluidos 14 Postgres locales), 62 pgTAP y advisors/lint PASS.
+  Esa evidencia no prueba el comportamiento de la app.
+- Flutter test/analyze/build, dispositivo, cerrar/reabrir la app para recuperar
+  un job: **NO EJECUTADO**. IA pagada, descargas de terceros y despliegues:
+  **NO EJECUTADO**. No hay integración que permita esa prueba móvil todavía.
+
+Manual exacto para API/worker/reinicio/aislamiento/cuotas en el hermano:
+`foodiefy_api/docs/recovery/phase08.md`. El propietario puede verificar jobs
+desde el cliente CLI local; la comprobación física desde Flutter requiere la
+integración de Fase 09. Se hereda el bloqueo de medios/redes sociales en entornos
+de producción no verificados. Siguiente entrada: consumir este contrato en
+Fase 09 únicamente cuando se solicite; esta entrega termina en Fase 08.
+
+Commit propuesto, **no ejecutado**: `chore: sync durable import job contract`.
+
 ## Fase 04 · 2026-09-08
 
 **Persistencia cloud privada y rescate legacy implementados sobre los repositorios existentes. Verificación local; no se avanza a la fase siguiente.**
