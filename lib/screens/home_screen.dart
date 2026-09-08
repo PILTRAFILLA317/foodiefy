@@ -94,6 +94,14 @@ class _HomeScreenState extends State<HomeScreen> {
         surfaceTintColor: Colors.white,
         actions: [
           IconButton(
+            tooltip: 'Importar y recuperar recetas',
+            icon: const Icon(Icons.download_outlined, color: Colors.black),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ImportRecipeScreen()),
+            ),
+          ),
+          IconButton(
             icon: const Icon(Icons.add, color: Colors.black),
             onPressed: () {
               // print('add button pressed');

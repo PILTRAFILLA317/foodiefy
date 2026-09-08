@@ -1,11 +1,12 @@
 # Snapshot de contrato API
 
-## Jobs de importación · Fase 08
+## Jobs de importación · Fases 08–09
 
 `imports.v1.schema.json` y `imports.v1.manifest.json` se generan desde
 `foodiefy_api/src/imports/models.py`. Incluyen solicitud, aceptación, consulta,
 paginación, estados y etapas independientes, sin porcentajes ficticios.
-No contienen credenciales. Recibir el contrato no implementa polling ni UI.
+No contienen credenciales. La fase 09 consume este contrato desde el cliente
+resumible; admite description pegada con URL opcional, con auth/cuotas de API.
 
 Actualizar desde `foodiefy_api/`:
 
@@ -15,7 +16,7 @@ rtk proxy .venv-recovery/bin/python -m scripts.generate_import_contract --sync-f
 rtk proxy git -C ../foodiefy diff -- contracts
 ```
 
-No editar el snapshot a mano. La integración móvil queda para Fase 09.
+No editar el snapshot a mano. La guía de integración y pruebas nativas está en `docs/recovery/phase09.md`.
 
 ## Recetas · Fase 03
 

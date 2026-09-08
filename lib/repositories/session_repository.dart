@@ -8,6 +8,11 @@ class SessionRepository extends ChangeNotifier {
     _session = client?.auth.currentSession;
     _subscription = client?.auth.onAuthStateChange.listen(
       (state) {
+        // A refresh completed after logout/account switch must not restore its owner.
+        if (state.event == AuthChangeEvent.tokenRefreshed &&
+            state.session?.user.id != _session?.user.id) {
+          return;
+        }
         _session = state.session;
         if (state.event == AuthChangeEvent.passwordRecovery) {
           recoveringPassword = true;
@@ -28,6 +33,17 @@ class SessionRepository extends ChangeNotifier {
   bool recoveringPassword = false;
   String? error;
   String? get ownerId => _session?.user.id;
+  String? get accessToken => _session?.accessToken;
+  Future<void> refreshAccessToken() async {
+    final owner = ownerId;
+    if (owner == null) throw StateError('Inicia sesión.');
+    final response = await _required.auth.refreshSession();
+    if (ownerId != owner || response.session?.user.id != owner) {
+      throw StateError('La sesión cambió.');
+    }
+    _session = response.session;
+  }
+
   String? get email => _session?.user.email;
   bool get configured => client != null;
   static const redirectUrl = 'io.supabase.foodiefy://login-callback';

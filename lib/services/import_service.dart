@@ -1,228 +1,177 @@
-import '../repositories/app_repositories.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-
 import 'package:http/http.dart' as http;
 import 'package:http/io_client.dart';
-import 'package:uuid/uuid.dart';
-
 import '../config/app_config.dart';
-import '../models/recipe.dart';
-
-class ImportRecipeService {
-  ImportRecipeService({
-    http.Client? client,
-    String? Function()? accessToken,
-    AppConfig? config,
-    this.requestTimeout = const Duration(seconds: 30),
-    Duration connectionTimeout = const Duration(seconds: 5),
-  }) : _client =
-           client ??
-           IOClient(HttpClient()..connectionTimeout = connectionTimeout),
-       _config = config ?? AppConfig.current,
-       _accessToken =
-           accessToken ??
-           (() => AppRepositories
-               .session
-               .client
-               ?.auth
-               .currentSession
-               ?.accessToken);
-
-  final String? Function() _accessToken;
-  final http.Client _client;
-  final AppConfig _config;
-  final Duration requestTimeout;
-
-  void close() => _client.close();
-
-  Future<Recipe> importRecipeFromUrl(String url) async {
-    if (_config.rescueMode) {
-      throw ImportRecipeException(
-        'Importación cloud deshabilitada en rescate local.',
-        code: 'disabled',
-      );
-    }
-    final token = _accessToken();
-    if (token == null) {
-      throw ImportRecipeException(
-        'Inicia sesión antes de importar.',
-        code: 'unauthorized',
-      );
-    }
-    final source = Uri.tryParse(url);
-    if (source == null ||
-        source.host.isEmpty ||
-        source.userInfo.isNotEmpty ||
-        !['http', 'https'].contains(source.scheme)) {
-      throw ImportRecipeException(
-        'Ingresa un enlace HTTP(S) válido.',
-        code: 'invalid_url',
-      );
-    }
-    try {
-      final base = _config.apiBaseUrl!;
-      final uri = base.replace(
-        path:
-            '${base.path.replaceFirst(RegExp(r"/+$"), "")}/api/analyze-recipe',
-      );
-      final response = await _client
-          .post(
-            uri,
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-              'Authorization': 'Bearer $token',
-            },
-            body: jsonEncode({'url': url}),
-          )
-          .timeout(requestTimeout);
-      if (response.statusCode != 200) {
-        final code = switch (response.statusCode) {
-          401 || 403 => 'unauthorized',
-          429 => 'rate_limited',
-          503 => 'unavailable',
-          _ => 'http_error',
-        };
-        throw ImportRecipeException(
-          'La API no pudo importar la receta (HTTP ${response.statusCode}).',
-          code: code,
-        );
-      }
-      final body = jsonDecode(response.body);
-      if (body is! Map<String, dynamic>) {
-        throw ImportRecipeException(
-          'La API devolvió un formato inválido.',
-          code: 'invalid_payload',
-        );
-      }
-      if (body['success'] == false) {
-        throw ImportRecipeException(
-          'El servidor no pudo extraer la receta.',
-          code: 'remote_failure',
-        );
-      }
-      final data = body['recipe'];
-      if (body['success'] != true ||
-          data is! Map<String, dynamic> ||
-          data['titulo'] is! String ||
-          (data['titulo'] as String).trim().isEmpty ||
-          !_validList(data['ingredientes']) ||
-          !_validList(data['pasos'])) {
-        throw ImportRecipeException(
-          'La API devolvió una receta incompleta.',
-          code: 'invalid_payload',
-        );
-      }
-      return _mapRecipeFromApi(data, sourceUrl: url);
-    } on ImportRecipeException {
-      rethrow;
-    } on TimeoutException {
-      _client.close();
-      throw ImportRecipeException(
-        'La solicitud agotó el tiempo de espera.',
-        code: 'timeout',
-      );
-    } on SocketException {
-      throw ImportRecipeException(
-        'No se pudo conectar con la API.',
-        code: 'network',
-      );
-    } on http.ClientException {
-      throw ImportRecipeException(
-        'No se pudo conectar con la API.',
-        code: 'network',
-      );
-    } on FormatException {
-      throw ImportRecipeException(
-        'La API devolvió JSON inválido.',
-        code: 'invalid_json',
-      );
-    } on TypeError {
-      throw ImportRecipeException(
-        'La API devolvió campos inválidos.',
-        code: 'invalid_payload',
-      );
-    }
-  }
-
-  bool _validList(dynamic value) =>
-      value is List &&
-      value.isNotEmpty &&
-      value.every((entry) => entry is String && entry.trim().isNotEmpty);
-
-  Recipe _mapRecipeFromApi(Map<String, dynamic> recipe, {String? sourceUrl}) {
-    // A new local recipe owns its identity; provider IDs are not local IDs.
-    final id = const Uuid().v4();
-    final title = recipe['titulo'] as String? ?? 'Receta importada';
-    final description = recipe['descripcion'] as String?;
-    final ingredients = _stringListFromDynamic(recipe['ingredientes']);
-    final steps = _stringListFromDynamic(recipe['pasos']);
-    final prepTimeText = recipe['tiempo_preparacion'] as String?;
-    final prepTime = _parsePrepTime(prepTimeText);
-    final imageUrl = recipe['imagen'] as String?;
-    final originalUrl = recipe['url'] as String?;
-    final uploader = recipe['uploader'] as String?;
-    final platform = recipe['platform'] as String?;
-    final thumbnail = recipe['thumbnail'] as String?;
-    final finalQuantity =
-        recipe['cantidad_final'] as String? ?? 'No especificado';
-    final macronutrients = _parseMacronutrients(
-      recipe['macronutrientes'] as Map<String, dynamic>?,
-    );
-
-    return Recipe(
-      id: id,
-      title: title,
-      description: description,
-      ingredients: ingredients,
-      steps: steps,
-      imagePath: imageUrl ?? thumbnail,
-      originalVideoUrl: originalUrl,
-      sourceUrl: sourceUrl ?? originalUrl,
-      isImported: true,
-      isPublic: false,
-      prepTimeMinutes: prepTime,
-      prepTimeText: prepTimeText,
-      uploader: uploader,
-      platform: platform,
-      thumbnailUrl: thumbnail,
-      finalQuantity: finalQuantity,
-      macronutrients: macronutrients,
-      createdAt: DateTime.now(),
-    );
-  }
-
-  List<String> _stringListFromDynamic(dynamic value) {
-    if (value is List) {
-      return value.whereType<String>().toList();
-    }
-    return const [];
-  }
-
-  int? _parsePrepTime(String? value) {
-    if (value == null || value.isEmpty) return null;
-    final match = RegExp(r'(\d{1,3})').firstMatch(value);
-    if (match == null) return null;
-    return int.tryParse(match.group(0)!);
-  }
-
-  RecipeMacronutrients? _parseMacronutrients(Map<String, dynamic>? data) {
-    if (data == null) return null;
-    try {
-      final macros = RecipeMacronutrients.fromJson(data);
-      return macros.hasAnyValue ? macros : null;
-    } catch (_) {
-      return null;
-    }
-  }
-}
+import '../repositories/app_repositories.dart';
 
 class ImportRecipeException implements Exception {
-  ImportRecipeException(this.message, {required this.code});
+  const ImportRecipeException(this.message, {required this.code});
   final String message;
   final String code;
   @override
   String toString() => message;
+}
+
+String importError(String code) => switch (code) {
+  'unauthorized' => 'Inicia sesión de nuevo para continuar.',
+  'disabled' =>
+    'Configura cloud para importar; el rescate local es de solo lectura.',
+  'source_unavailable' =>
+    'No se puede acceder a la fuente. Puedes pegar su texto o receta.',
+  'quota_exceeded' =>
+    'Has alcanzado la cuota o ya tienes una importación activa.',
+  'budget_exhausted' =>
+    'El presupuesto está agotado o el procesamiento pagado está deshabilitado.',
+  'duration_limit' => 'El contenido supera el límite de duración o tamaño.',
+  'visual_required_unavailable' =>
+    'Falta información visual. Pega las cantidades o pasos que aparecen en pantalla.',
+  'invalid_output' =>
+    'No se obtuvo un borrador válido. Revisa la fuente o pega la receta.',
+  'idempotency_conflict' =>
+    'Este intento ya tiene otro contenido. Crea un nuevo intento.',
+  'canceled' => 'Importación cancelada.',
+  'invalid_request' =>
+    'Revisa el enlace o el tamaño del texto (máximo 6000 bytes).',
+  _ =>
+    'No se pudo conectar o confirmar la respuesta. Reintenta; se conservará el mismo intento.',
+};
+
+class ImportRecipeService {
+  ImportRecipeService({
+    http.Client? client,
+    AppConfig? config,
+    String? Function()? accessToken,
+    Future<void> Function()? refresh,
+    this.requestTimeout = const Duration(seconds: 20),
+  }) : _client =
+           client ??
+           IOClient(
+             HttpClient()..connectionTimeout = const Duration(seconds: 5),
+           ),
+       _config = config ?? AppConfig.current,
+       _token = accessToken ?? (() => AppRepositories.session.accessToken),
+       _refresh =
+           refresh ?? (() => AppRepositories.session.refreshAccessToken());
+  final http.Client _client;
+  final AppConfig _config;
+  final String? Function() _token;
+  final Future<void> Function() _refresh;
+  final Duration requestTimeout;
+  void close() => _client.close();
+
+  Future<Map<String, dynamic>> request(
+    String method,
+    String path, {
+    Map<String, dynamic>? body,
+    String? key,
+  }) async {
+    if (_config.rescueMode || _config.apiBaseUrl == null) {
+      throw ImportRecipeException(importError('disabled'), code: 'disabled');
+    }
+    try {
+      for (var attempt = 0; attempt < 2; attempt++) {
+        final token = _token();
+        if (token == null) {
+          throw const ImportRecipeException(
+            'Inicia sesión para importar.',
+            code: 'unauthorized',
+          );
+        }
+        final base = _config.apiBaseUrl!;
+        final uri = Uri.parse(
+          '${base.toString().replaceFirst(RegExp(r'/+$'), '')}/v1/imports$path',
+        );
+        final req = http.Request(method, uri)..followRedirects = false;
+        req.headers.addAll({
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          if (key != null) 'Idempotency-Key': key,
+        });
+        if (body != null) req.body = jsonEncode(body);
+        final response = await (() async {
+          final stream = await _client.send(req);
+          final bytes = <int>[];
+          await for (final chunk in stream.stream) {
+            if (bytes.length + chunk.length > 2 * 1024 * 1024) {
+              throw const FormatException();
+            }
+            bytes.addAll(chunk);
+          }
+          return http.Response.bytes(bytes, stream.statusCode);
+        })().timeout(requestTimeout);
+        if (response.statusCode == 401 && attempt == 0) {
+          try {
+            await _refresh().timeout(requestTimeout);
+          } catch (_) {
+            throw ImportRecipeException(
+              importError('unauthorized'),
+              code: 'unauthorized',
+            );
+          }
+          continue;
+        }
+        Map<String, dynamic> data;
+        try {
+          data = Map<String, dynamic>.from(jsonDecode(response.body) as Map);
+        } catch (_) {
+          if (response.statusCode >= 200 && response.statusCode < 300) {
+            throw const ImportRecipeException(
+              'Respuesta inválida del servidor.',
+              code: 'invalid_output',
+            );
+          }
+          data = {};
+        }
+        if (response.statusCode < 200 || response.statusCode >= 300) {
+          final code = response.statusCode == 401
+              ? 'unauthorized'
+              : (data['error'] is Map
+                        ? data['error']['code'] as String?
+                        : null) ??
+                    'provider_down';
+          throw ImportRecipeException(importError(code), code: code);
+        }
+        if (data['schema_version'] != '1.0') throw const FormatException();
+        return data;
+      }
+      throw ImportRecipeException(
+        importError('unauthorized'),
+        code: 'unauthorized',
+      );
+    } on ImportRecipeException {
+      rethrow;
+    } on TimeoutException {
+      throw ImportRecipeException(importError('timeout'), code: 'timeout');
+    } on FormatException {
+      throw ImportRecipeException(
+        importError('invalid_output'),
+        code: 'invalid_output',
+      );
+    } catch (_) {
+      throw ImportRecipeException(importError('network'), code: 'network');
+    }
+  }
+
+  Future<String> submit(Map<String, dynamic> payload, String key) async {
+    final data = await request('POST', '', body: payload, key: key);
+    final id = data['job_id'];
+    if (id is! String || !RegExp(r'^[0-9a-fA-F-]{36}$').hasMatch(id)) {
+      throw const ImportRecipeException(
+        'Identificador inválido.',
+        code: 'invalid_output',
+      );
+    }
+    return id;
+  }
+
+  Future<Map<String, dynamic>> get(String id) => request('GET', '/$id');
+  Future<Map<String, dynamic>> list({String? cursor}) => request(
+    'GET',
+    '?limit=1${cursor == null ? '' : '&cursor=${Uri.encodeQueryComponent(cursor)}'}',
+  );
+  Future<Map<String, dynamic>> cancel(String id) =>
+      request('POST', '/$id/cancel');
 }

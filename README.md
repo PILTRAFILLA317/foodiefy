@@ -1,3 +1,12 @@
+# Foodiefy · Fase 09
+
+Importaciones autenticadas y resumibles con etapas reales, borrador revisable y
+recepción nativa de enlaces. [Guía de configuración y prueba en dispositivos](docs/recovery/phase09.md).
+El menú real de Compartir sigue pendiente de compilación/firma/prueba física;
+iOS requiere App Group registrado. No se habilitó gasto ni se desplegó nada.
+
+Los apartados siguientes conservan documentación de fases anteriores.
+
 # Foodiefy · Fase 04
 
 Cliente Flutter existente con cuentas email/contraseña, persistencia privada

@@ -1,5 +1,93 @@
 # Progreso de recuperación · Foodiefy Flutter
 
+## Fase 09 · 2026-09-08
+
+**Flujo móvil de jobs implementado y verificado con tests. Recepción nativa
+configurada en código; firma/instalación/menú Compartir real pendientes.**
+
+### Decisiones y archivos/contratos afectados
+
+- `lib/services/import_service.dart`: cliente `/v1/imports` con JWT vigente de
+  SessionRepository, API_BASE_URL por entorno, límite de respuesta/timeout,
+  redirects desactivados y una sola renovación/repetición ante 401.
+- `lib/imports/import_jobs.dart`: persistencia por usuario antes de POST,
+  Idempotency-Key/payload estables, reanudación y conciliación paginada, GET por ID
+  para jobs activos, polling sin solapamiento con backoff y pausa de lifecycle.
+  401 persistente detiene polling; logout y epoch rechazan respuestas de A en B.
+  Rechazo del envío se distingue de estado backend y permite corregir la entrada.
+- `screens/import_recipe_screen.dart`: reemplazo del flujo legacy/mensajes
+  aleatorios por URL editable, stages reales, cancelar, recuperar, pegar texto,
+  revisar partial/contradicciones/faltantes y descartar solo borrador. Live region,
+  texto escalable/scroll, sin porcentajes ni animaciones continuas nuevas.
+- `create_recipe_screen.dart`, `recipe_codec.dart`: editor/repository existentes,
+  identidad y operación estables por job para doble tap/retry; origen/campos
+  estructurados preservados, nutrición indicada e invalidada si cambian ingredientes.
+- `lib/imports/share_inbox.dart`, `main.dart`, `home_screen.dart`,
+  `app_repositories.dart`, `session_repository.dart`: bandeja FIFO por evento,
+  TTL 24 h, selección de múltiples URLs, preservación antes/durante login,
+  deduplicación de recepción sin bloquear un share legítimo posterior. Compartir
+  nunca inicia POST/IA; nuevo botón permite recuperar importaciones desde Home.
+- Android Manifest/MainActivity: ACTION_SEND text/plain, singleTask, onCreate/
+  onNewIntent, UUID/URL mínima en cola privada con acuse tras persistir en Dart.
+  iOS Shared/ShareExtension/AppDelegate/Info.plist/entitlements/proyecto Xcode:
+  target real, puente MethodChannel, App Group configurable y archivo por evento.
+  Sin paquetes nuevos; share_handler 0.0.25 fue evaluado, no instalado. No se afirma
+  mantenimiento activo del paquete en 2026 por una publicación de 2025.
+- `tool/configure_share_ios.py`, `ios/Shared/Share.xcconfig`, `.gitignore`:
+  plantilla sin Team/App Group inventados; configuración local ignorada solo con
+  identifiers públicos proporcionados por el propietario. Firma no provisionada.
+- Contrato imports regenerado desde API: description opcional y URL opcional
+  cuando hay texto. API añade pasted_text sin fetch/STT, mismas cuotas y retiene
+  transcript pagado al cancelar hasta TTL. Sin migraciones ni cambios de precios.
+- [phase09.md](phase09.md), README y contracts/README: guía manual completa.
+  Ambos repositorios estaban limpios al iniciar esta fase; no hubo commits,
+  resets, borrado legacy, despliegues ni builds de app/contenedor.
+
+### Pruebas y resultados reales
+
+| Comando/prueba | Resultado |
+| --- | --- |
+| `rtk proxy flutter test --no-pub --reporter expanded` | **PASS: 47 tests; 1 skip explícito**, ejecución final |
+| Nuevos tests de imports/share | **18 tests**: HTTP fake, JWT/refresh acotado, cuerpo separado, timeout/límites, persistencia/reapertura, no solapamiento, pausa y A→B, tres rutas de stage consumidas desde cliente fake, TTL/colas/dedup/login, guardado único y avisos con texto ampliado |
+| `rtk proxy flutter analyze --no-pub --no-fatal-infos` | **PASS: 0 errores, 0 warnings; 12 infos preexistentes** |
+| Swift typecheck ShareInbox + ShareViewController con SDK iOS simulator | PASS |
+| Swift typecheck AppDelegate + ShareInbox con headers Flutter instalados | PASS |
+| Plist/entitlements y Android Manifest | PASS de parseo; no prueba menú nativo |
+| Snapshot imports API/Flutter y generadores `--check` | PASS, igualdad byte a byte |
+| API con opt-in PostgreSQL local | **PASS: 161 tests**, incluye texto autenticado/ledger y transcript retenido tras cancelar |
+| Ruff API | PASS |
+| `flutter devices` | Android RMX3851 / Android 16 detectado; iPhone **no accesible** |
+| HTTP real Flutter/Supabase de fase 04 en esta fase | **NO EJECUTADO**, omitido explícitamente en suite; no confundir con DB real de API |
+| Kotlin compilado, builds, firma/instalación, compartir desde apps reales, cerrar/reabrir nativamente | **NO EJECUTADO** |
+| IA pagada, fuentes de terceros, benchmark real, despliegues/migraciones remotas | **NO EJECUTADO** |
+
+Los tests del importador retirado fueron sustituidos por el contrato de jobs.
+Una aserción inicial de concurrencia necesitó esperar la entrada al transporte.
+Las primeras pruebas de arranque/HTTP fake se bloquearon por mezclar futuros de
+FakeAsync y runAsync; se interrumpieron, se corrigió el arnés y se ejecutó la suite
+final anterior. Ruff detectó y corrigió un orden de imports en un test API. Ninguna
+ejecución fallida/interrumpida cuenta como PASS. El índice de grafo seguía en
+2026-09-07; la cobertura marcó archivos nuevos/cambiados y se verificó fuente real.
+
+### Bloqueos, manual y siguiente entrada
+
+[Guía exacta](phase09.md#preparación-y-comandos-manuales-exactos): iniciar API/worker
+sin pago, configurar endpoints públicos, Android con adb reverse, registrar Team/
+Bundle ID/App Group reales para ambos targets iOS y ejecutar instalación de desarrollo
+manualmente. **iOS guarda el enlace y pide abrir Foodiefy; no lanza automáticamente
+el contenedor desde la extensión.** No se certifica funcionamiento en dispositivo
+solo por typecheck o por existir el target.
+
+El propietario debe probar compartir Reel/Short con app cerrada/abierta, sin URL/
+varias URLs, login intermedio, recuperar mismo job/key al cerrar/reabrir y guardar
+una sola receta. Debe verificar tres rutas de evidencia con fuentes autorizadas y
+presupuesto explícito; no se habilitó gasto. Se heredan bloqueos de extracción social
+y aislamiento de medios en producción. Faltan iPhone accesible, firma/App Group y
+endpoint de desarrollo alcanzable desde el iPhone. Siguiente entrada: verificación
+manual de fase 09; no implementar fase 10 sin nueva instrucción.
+
+Commit propuesto, **no ejecutado**: `feat: integrate staged resumable recipe imports`.
+
 ## Fase 08 · 2026-09-08
 
 **Recibido contrato versionado de jobs. No se implementó integración móvil.**

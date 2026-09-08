@@ -1,3 +1,4 @@
+import 'screens/import_recipe_screen.dart';
 import 'package:flutter/material.dart';
 import 'screens/home_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -52,6 +53,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   String? _shownOwner;
+  GlobalKey<NavigatorState> _navigator = GlobalKey<NavigatorState>();
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -62,11 +64,13 @@ class _MyAppState extends State<MyApp> {
           PaintingBinding.instance.imageCache.clear();
           PaintingBinding.instance.imageCache.clearLiveImages();
           _shownOwner = owner;
+          _navigator = GlobalKey<NavigatorState>();
         }
         return MaterialApp(
           key: ValueKey(
             '${AppRepositories.session.ownerId}:${AppRepositories.session.recoveringPassword}',
           ),
+          navigatorKey: _navigator,
           title: 'Foodiefy',
           builder: (context, child) => AppConfig.current.rescueMode
               ? Banner(
@@ -74,7 +78,35 @@ class _MyAppState extends State<MyApp> {
                   location: BannerLocation.topEnd,
                   child: child ?? const SizedBox.shrink(),
                 )
-              : child ?? const SizedBox.shrink(),
+              : AppRepositories.shares == null
+              ? child ?? const SizedBox.shrink()
+              : ListenableBuilder(
+                  listenable: AppRepositories.shares!,
+                  builder: (context, _) => Column(
+                    children: [
+                      if (AppRepositories.shares!.pending != null)
+                        Material(
+                          color: Colors.orange.shade50,
+                          child: SafeArea(
+                            bottom: false,
+                            child: ListTile(
+                              title: const Text('Enlace compartido pendiente'),
+                              subtitle: const Text(
+                                'Ábrelo para elegir e importar. Aún no se ha procesado.',
+                              ),
+                              trailing: const Icon(Icons.link),
+                              onTap: () => _navigator.currentState?.push(
+                                MaterialPageRoute(
+                                  builder: (_) => const ImportRecipeScreen(),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      Expanded(child: child ?? const SizedBox.shrink()),
+                    ],
+                  ),
+                ),
           theme: ThemeData(
             primarySwatch: Colors.orange,
             secondaryHeaderColor: Colors.deepOrange,

@@ -55,3 +55,6 @@ config/*.local.json
 /legacy-quarantine/
 /recovery-exports/
 /cloud-cache.sqlite*
+
+# Local development signing; never credentials in shared defaults.
+ios/Shared/Share.local.xcconfig

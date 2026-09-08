@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -7,13 +6,9 @@ import 'package:foodiefy/config/app_config.dart';
 import 'package:foodiefy/main.dart' as app;
 import 'package:foodiefy/models/recipe.dart';
 import 'package:foodiefy/screens/create_recipe_screen.dart';
-import 'package:foodiefy/screens/import_recipe_screen.dart';
 import 'package:foodiefy/screens/recipe_detail_screen.dart';
 import 'package:foodiefy/screens/user_screen.dart';
-import 'package:foodiefy/services/import_service.dart';
 import 'package:foodiefy/services/storage_service.dart';
-import 'package:http/http.dart' as http;
-import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 AppConfig testConfig() => AppConfig.fromValues({
@@ -49,42 +44,6 @@ void main() {
     AppConfig.current = AppConfig.fromValues({});
   });
 
-  for (final id in [null, '', ' ', 'provider-id']) {
-    test('new imports use distinct UUIDs for provider id $id', () async {
-      final service = ImportRecipeService(
-        accessToken: () => 'fixture-token',
-        config: testConfig(),
-        client: MockClient((request) async {
-          expect(request.url.path, '/api/analyze-recipe');
-          expect(
-            jsonDecode(request.body)['url'],
-            'https://example.invalid/video',
-          );
-          return http.Response(jsonEncode(payload(id: id)), 200);
-        }),
-      );
-      addTearDown(service.close);
-      final first = await service.importRecipeFromUrl(
-        'https://example.invalid/video',
-      );
-      final second = await service.importRecipeFromUrl(
-        'https://example.invalid/video',
-      );
-      expect(
-        first.id,
-        matches(
-          RegExp(
-            r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
-          ),
-        ),
-      );
-      expect(first.id, isNot(second.id));
-      expect(first.macronutrients, isNull);
-      await expectLater(StorageService.saveRecipe(first), throwsStateError);
-      expect((await StorageService.getRecipes()), isEmpty);
-    });
-  }
-
   for (final value in [
     null,
     -1,
@@ -115,61 +74,6 @@ void main() {
     expect(RecipeMacronutrients.fromJson(macros.toJson()).totalKcal, 12.75);
   });
 
-  final cases = [
-    (503, '{}', 'unavailable'),
-    (401, '{}', 'unauthorized'),
-    (429, '{}', 'rate_limited'),
-    (500, '{}', 'http_error'),
-    (200, '{bad', 'invalid_json'),
-    (200, '[]', 'invalid_payload'),
-    (200, '{"success":false}', 'remote_failure'),
-    (200, '{"success":true}', 'invalid_payload'),
-    (200, '{"success":true,"recipe":{"titulo":"Title"}}', 'invalid_payload'),
-  ];
-  for (final (status, body, code) in cases) {
-    test('import maps $status/$code', () async {
-      final service = ImportRecipeService(
-        accessToken: () => 'fixture-token',
-        config: testConfig(),
-        client: MockClient((_) async => http.Response(body, status)),
-      );
-      addTearDown(service.close);
-      await expectLater(
-        service.importRecipeFromUrl('https://example.invalid/video'),
-        throwsA(
-          isA<ImportRecipeException>().having((e) => e.code, 'code', code),
-        ),
-      );
-    });
-  }
-  test('request timeout is a domain error', () async {
-    final service = ImportRecipeService(
-      accessToken: () => 'fixture-token',
-      config: testConfig(),
-      requestTimeout: const Duration(milliseconds: 5),
-      client: MockClient((_) => Completer<http.Response>().future),
-    );
-    addTearDown(service.close);
-    await expectLater(
-      service.importRecipeFromUrl('https://example.invalid/video'),
-      throwsA(
-        isA<ImportRecipeException>().having((e) => e.code, 'code', 'timeout'),
-      ),
-    );
-  });
-  test('rescue never sends HTTP', () async {
-    final service = ImportRecipeService(
-      accessToken: () => 'fixture-token',
-      client: MockClient((_) => throw StateError('network forbidden')),
-    );
-    addTearDown(service.close);
-    await expectLater(
-      service.importRecipeFromUrl('https://example.invalid/video'),
-      throwsA(
-        isA<ImportRecipeException>().having((e) => e.code, 'code', 'disabled'),
-      ),
-    );
-  });
   test(
     'legacy read and export retain exact raw strings including collisions',
     () async {
@@ -258,7 +162,7 @@ void main() {
     }
   });
   testWidgets('actual main opens without dotenv or cloud', (tester) async {
-    await app.main();
+    await tester.runAsync(app.main);
     await tester.pumpAndSettle();
     expect(find.text('Foodiefy'), findsOneWidget);
     expect(tester.widget<Banner>(find.byType(Banner)).message, 'RESCATE LOCAL');
@@ -297,46 +201,5 @@ void main() {
     final saved = await tester.runAsync(StorageService.getRecipes);
     expect(saved!.map((r) => r.id), ['old']);
     expect(saved.single.createdAt, recipe.createdAt);
-  });
-  testWidgets('cancelled import can finish without setState after dispose', (
-    tester,
-  ) async {
-    final response = Completer<http.Response>();
-    final service = ImportRecipeService(
-      accessToken: () => 'fixture-token',
-      config: testConfig(),
-      client: MockClient((_) => response.future),
-    );
-    addTearDown(service.close);
-    await tester.pumpWidget(
-      MaterialApp(
-        home: ImportLoadingScreen(
-          url: 'https://example.invalid/video',
-          service: service,
-        ),
-      ),
-    );
-    await tester.pump();
-    await tester.pumpWidget(const MaterialApp(home: SizedBox()));
-    response.complete(http.Response(jsonEncode(payload()), 200));
-    await tester.pump(const Duration(seconds: 1));
-    expect(tester.takeException(), isNull);
-  });
-  testWidgets('remote error screen presents a readable failure', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: ImportErrorScreen(
-          message: 'La API no pudo importar la receta (HTTP 503).',
-        ),
-      ),
-    );
-    await tester.pump();
-    expect(
-      find.text('La API no pudo importar la receta (HTTP 503).'),
-      findsOneWidget,
-    );
-    await tester.pumpWidget(const MaterialApp(home: SizedBox()));
   });
 }

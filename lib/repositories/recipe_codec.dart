@@ -18,6 +18,15 @@ class RecipeCodec {
     final base = recipe.cloudDraft;
     final oldIngredients = (base?['ingredients'] as List?) ?? [];
     final oldSteps = (base?['steps'] as List?) ?? [];
+    final ingredientsChanged =
+        base != null &&
+        (oldIngredients.length != recipe.ingredients.length ||
+            List.generate(
+              recipe.ingredients.length,
+              (i) =>
+                  i < oldIngredients.length &&
+                  oldIngredients[i]['raw_text'] == recipe.ingredients[i],
+            ).contains(false));
     final macros = recipe.macronutrients;
     // Legacy macro basis/provenance was not recorded; retain raw backup instead of guessing.
     final nutrition = legacy || (recipe.isImported && base == null)
@@ -89,11 +98,15 @@ class RecipeCodec {
       'total_minutes': base?['total_minutes'],
       'servings': base?['servings'],
       'yield_text': text(recipe.finalQuantity),
-      'nutrition': base != null && _sameMacros(macros, base['nutrition'])
+      'nutrition': ingredientsChanged
+          ? null
+          : base != null && _sameMacros(macros, base['nutrition'])
           ? base['nutrition']
           : nutrition,
       'warnings': [
         if (base != null) ...(base['warnings'] as List),
+        if (ingredientsChanged && base['nutrition'] != null)
+          'Nutrición invalidada al editar ingredientes.',
         if (legacy)
           'Legacy raw conservado en backup; revisar campos sin procedencia.',
       ],

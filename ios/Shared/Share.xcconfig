@@ -1,0 +1,4 @@
+FOODIEFY_APP_BUNDLE_ID = com.example.foodiefy
+FOODIEFY_TEAM_ID =
+FOODIEFY_APP_GROUP =
+#include? "Share.local.xcconfig"

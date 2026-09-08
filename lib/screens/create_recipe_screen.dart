@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../models/recipe.dart';
 import '../services/recipe_service.dart';
+import '../repositories/app_repositories.dart';
 import '../repositories/library_repository.dart';
 // import '../widgets/auth_required_dialog.dart';
 import '../widgets/time_picker_widget.dart';
@@ -14,12 +15,16 @@ import 'package:uuid/uuid.dart';
 class CreateRecipeScreen extends StatefulWidget {
   final Recipe? template;
   final bool isEditing;
+  final String? importRecipeId;
+  final String? importOperationId;
   final String? initialCollectionId;
 
   const CreateRecipeScreen({
     super.key,
     this.template,
     this.isEditing = false,
+    this.importRecipeId,
+    this.importOperationId,
     this.initialCollectionId,
   });
 
@@ -56,7 +61,7 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
     _isImportedSource = template?.isImported ?? false;
 
     if (template != null) {
-      _id = widget.isEditing ? template.id : null;
+      _id = widget.importRecipeId ?? (widget.isEditing ? template.id : null);
       _titleController.text = template.title;
       _descriptionController.text = template.description ?? '';
       _quantityController.text = template.finalQuantity ?? '';
@@ -138,6 +143,18 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (widget.importRecipeId != null)
+                      const Text(
+                        'Borrador importado: revisa cantidades, ingredientes y pasos antes de guardar.',
+                      ),
+                    for (final warning
+                        in widget.template?.cloudDraft?['warnings'] as List? ??
+                            [])
+                      Text('Aviso: $warning'),
+                    if (widget.template?.cloudDraft?['nutrition'] != null)
+                      Text(
+                        'Nutrición: ${widget.template!.cloudDraft!['nutrition']['method']} · Base: ${widget.template!.cloudDraft!['nutrition']['basis']}. Los valores calculados o estimados no son una medición.',
+                      ),
                     _buildBasicInfoSection(),
                     const SizedBox(height: 24),
                     _buildTimeSection(),
@@ -870,7 +887,7 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
   }
 
   void _saveRecipe() async {
-    if (!_formKey.currentState!.validate() || !_canSave()) return;
+    if (_isSaving || !_formKey.currentState!.validate() || !_canSave()) return;
 
     setState(() => _isSaving = true);
 
@@ -909,7 +926,13 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
         platform: widget.template?.platform,
       );
 
-      if (widget.isEditing) {
+      if (widget.importOperationId != null) {
+        await AppRepositories.writable.saveRecipe(
+          recipe,
+          operationId: widget.importOperationId,
+          initialCollectionId: widget.initialCollectionId,
+        );
+      } else if (widget.isEditing) {
         await RecipeService.updateRecipe(recipe);
       } else {
         await RecipeService.createRecipe(
