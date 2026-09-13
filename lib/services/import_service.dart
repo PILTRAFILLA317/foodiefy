@@ -16,8 +16,7 @@ class ImportRecipeException implements Exception {
 
 String importError(String code) => switch (code) {
   'unauthorized' => 'Inicia sesión de nuevo para continuar.',
-  'disabled' =>
-    'Configura cloud para importar; el rescate local es de solo lectura.',
+  'disabled' => 'Las importaciones no están disponibles en este momento.',
   'source_unavailable' =>
     'No se puede acceder a la fuente. Puedes pegar su texto o receta.',
   'quota_exceeded' =>

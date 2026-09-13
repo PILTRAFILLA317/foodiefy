@@ -1,3 +1,13 @@
+# Foodiefy · Auth obligatorio
+
+La aplicación normal requiere una sesión válida. El AuthGate controla login,
+confirmación de email, recuperación y cierre de sesión desde la raíz.
+`API_BASE_URL` es opcional para Auth; las importaciones informan de su
+indisponibilidad cuando falta. El rescate requiere `LOCAL_RESCUE=true` explícito
+en desarrollo local y no se ofrece como alternativa al login.
+
+[Configuración, decisiones, pruebas y checklist física de Auth](docs/recovery/auth-foundation.md).
+
 # Foodiefy · Fase 09
 
 Importaciones autenticadas y resumibles con etapas reales, borrador revisable y

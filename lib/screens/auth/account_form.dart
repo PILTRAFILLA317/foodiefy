@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../repositories/app_repositories.dart';
+import '../../repositories/auth_errors.dart';
+import 'verify_email_screen.dart';
 
 enum AccountMode { login, register, recover, newPassword }
 
@@ -17,6 +19,7 @@ class _AccountFormState extends State<AccountForm> {
   final _form = GlobalKey<FormState>();
   bool _busy = false;
   String? _message;
+  String? _verificationEmail;
   String get _title => switch (widget.mode) {
     AccountMode.login => 'Iniciar sesión',
     AccountMode.register => 'Crear cuenta',
@@ -24,7 +27,7 @@ class _AccountFormState extends State<AccountForm> {
     AccountMode.newPassword => 'Nueva contraseña',
   };
   Future<void> _submit() async {
-    if (!_form.currentState!.validate()) return;
+    if (_busy || !_form.currentState!.validate()) return;
     setState(() {
       _busy = true;
       _message = null;
@@ -34,17 +37,15 @@ class _AccountFormState extends State<AccountForm> {
       switch (widget.mode) {
         case AccountMode.login:
           await session.signIn(_email.text, _password.text);
-          if (mounted) Navigator.pop(context, true);
         case AccountMode.register:
           final signedIn = await session.register(_email.text, _password.text);
           if (!mounted) return;
-          if (signedIn) {
-            Navigator.pop(context, true);
-          } else {
-            setState(
-              () => _message =
-                  'Solicitud enviada. Si procede, recibirás un correo de confirmación. Todavía no hay sesión; abre el enlace y vuelve a iniciar sesión.',
-            );
+          if (!signedIn) {
+            setState(() {
+              _verificationEmail = _email.text.trim();
+              _password.clear();
+              _confirm.clear();
+            });
           }
         case AccountMode.recover:
           await session.recover(_email.text);
@@ -57,12 +58,10 @@ class _AccountFormState extends State<AccountForm> {
         case AccountMode.newPassword:
           await session.updatePassword(_password.text);
       }
-    } catch (_) {
+    } catch (error, stack) {
+      logAuthError(error, stack);
       if (mounted) {
-        setState(
-          () => _message =
-              'No se pudo completar la solicitud. Revisa los datos y la conexión e inténtalo de nuevo.',
-        );
+        setState(() => _message = authErrorMessage(error));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -70,86 +69,115 @@ class _AccountFormState extends State<AccountForm> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(_title)),
-    body: Form(
-      key: _form,
-      child: ListView(
-        padding: const EdgeInsets.all(24),
-        children: [
-          if (!AppRepositories.session.configured)
-            const Text('Autenticación deshabilitada en rescate local.'),
-          if (widget.mode != AccountMode.newPassword)
-            TextFormField(
-              controller: _email,
-              keyboardType: TextInputType.emailAddress,
-              autofillHints: const [AutofillHints.email],
-              decoration: const InputDecoration(labelText: 'Email'),
-              validator: (v) => v != null && v.contains('@')
-                  ? null
-                  : 'Introduce un email válido.',
-            ),
-          if (widget.mode != AccountMode.recover)
-            TextFormField(
-              controller: _password,
-              obscureText: true,
-              enableSuggestions: false,
-              decoration: const InputDecoration(labelText: 'Contraseña'),
-              validator: (v) =>
-                  (v?.length ?? 0) >= 8 ? null : 'Usa al menos 8 caracteres.',
-            ),
-          if ([
-            AccountMode.register,
-            AccountMode.newPassword,
-          ].contains(widget.mode))
-            TextFormField(
-              controller: _confirm,
-              obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Confirmar contraseña',
-              ),
-              validator: (v) =>
-                  v == _password.text ? null : 'Las contraseñas no coinciden.',
-            ),
-          const SizedBox(height: 24),
-          if (_message != null) Text(_message!, semanticsLabel: _message),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: _busy || !AppRepositories.session.configured
-                ? null
-                : _submit,
-            child: Text(_busy ? 'Conectando…' : _title),
+  Widget build(BuildContext context) {
+    if (widget.mode == AccountMode.newPassword &&
+        !AppRepositories.session.recoveringPassword) {
+      return const Scaffold(
+        body: Center(
+          child: Text(
+            'Abre el enlace de recuperación para cambiar tu contraseña.',
           ),
-          if (widget.mode == AccountMode.login) ...[
-            TextButton(
-              onPressed: _busy
+        ),
+      );
+    }
+    if (_verificationEmail != null) {
+      return VerifyEmailScreen(
+        email: _verificationEmail!,
+        onUseAnotherEmail: () {
+          setState(() => _verificationEmail = null);
+        },
+      );
+    }
+    return Scaffold(
+      appBar: AppBar(title: Text(_title)),
+      body: Form(
+        key: _form,
+        child: ListView(
+          padding: const EdgeInsets.all(24),
+          children: [
+            if (widget.mode == AccountMode.login)
+              const Text('Inicia sesión para acceder a Foodiefy.'),
+            if (AppRepositories.session.error != null)
+              Text(AppRepositories.session.error!),
+            if (widget.mode != AccountMode.newPassword)
+              TextFormField(
+                controller: _email,
+                keyboardType: TextInputType.emailAddress,
+                autofillHints: const [AutofillHints.email],
+                decoration: const InputDecoration(labelText: 'Email'),
+                validator: (v) => v != null && v.contains('@')
+                    ? null
+                    : 'Introduce un email válido.',
+              ),
+            if (widget.mode != AccountMode.recover)
+              TextFormField(
+                controller: _password,
+                obscureText: true,
+                enableSuggestions: false,
+                decoration: const InputDecoration(labelText: 'Contraseña'),
+                validator: (v) => widget.mode == AccountMode.login
+                    ? (v?.isNotEmpty == true
+                          ? null
+                          : 'Introduce tu contraseña.')
+                    : (v?.length ?? 0) >= 8
+                    ? null
+                    : 'Usa al menos 8 caracteres.',
+              ),
+            if ([
+              AccountMode.register,
+              AccountMode.newPassword,
+            ].contains(widget.mode))
+              TextFormField(
+                controller: _confirm,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Confirmar contraseña',
+                ),
+                validator: (v) => v == _password.text
+                    ? null
+                    : 'Las contraseñas no coinciden.',
+              ),
+            const SizedBox(height: 24),
+            if (_message != null) Text(_message!, semanticsLabel: _message),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _busy || !AppRepositories.session.configured
                   ? null
-                  : () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            const AccountForm(mode: AccountMode.recover),
-                      ),
-                    ),
-              child: const Text('He olvidado mi contraseña'),
+                  : _submit,
+              child: Text(_busy ? 'Conectando…' : _title),
             ),
-            TextButton(
-              onPressed: _busy
-                  ? null
-                  : () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            const AccountForm(mode: AccountMode.register),
+            if (widget.mode == AccountMode.login) ...[
+              TextButton(
+                onPressed: _busy
+                    ? null
+                    : () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              const AccountForm(mode: AccountMode.recover),
+                        ),
                       ),
-                    ),
-              child: const Text('Crear cuenta'),
-            ),
+                child: const Text('He olvidado mi contraseña'),
+              ),
+              TextButton(
+                onPressed: _busy
+                    ? null
+                    : () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              const AccountForm(mode: AccountMode.register),
+                        ),
+                      ),
+                child: const Text('Crear cuenta'),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
-    ),
-  );
+    );
+  }
+
   @override
   void dispose() {
     _email.dispose();

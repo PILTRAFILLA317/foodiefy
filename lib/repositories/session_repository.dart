@@ -2,27 +2,44 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'auth_errors.dart';
+
+enum SessionStatus {
+  initializing,
+  unauthenticated,
+  authenticated,
+  passwordRecovery,
+}
 
 class SessionRepository extends ChangeNotifier {
   SessionRepository(this.client) {
     _session = client?.auth.currentSession;
+    _initializing = _session?.isExpired ?? false;
+    _scheduleExpiry();
     _subscription = client?.auth.onAuthStateChange.listen(
       (state) {
         // A refresh completed after logout/account switch must not restore its owner.
-        if (state.event == AuthChangeEvent.tokenRefreshed &&
+        if ((state.event == AuthChangeEvent.tokenRefreshed ||
+                state.event == AuthChangeEvent.userUpdated) &&
             state.session?.user.id != _session?.user.id) {
           return;
         }
-        _session = state.session;
-        if (state.event == AuthChangeEvent.passwordRecovery) {
-          recoveringPassword = true;
+        if (state.event == AuthChangeEvent.signedIn ||
+            state.session?.user.id != _session?.user.id) {
+          _recoveringPassword = false;
         }
-        if (_session == null) recoveringPassword = false;
+        _session = state.session;
+        error = null;
+        if (state.event == AuthChangeEvent.passwordRecovery) {
+          _recoveringPassword = _session != null && !_session!.isExpired;
+        }
+        if (_session == null) _recoveringPassword = false;
+        _scheduleExpiry();
         notifyListeners();
       },
-      onError: (Object _) {
-        error =
-            'No se pudo renovar la sesión. Revisa la conexión e inicia sesión de nuevo.';
+      onError: (Object exception, StackTrace stack) {
+        logAuthError(exception, stack);
+        error = authErrorMessage(exception);
         notifyListeners();
       },
     );
@@ -30,10 +47,50 @@ class SessionRepository extends ChangeNotifier {
   final SupabaseClient? client;
   StreamSubscription<AuthState>? _subscription;
   Session? _session;
-  bool recoveringPassword = false;
+  Timer? _expiryTimer;
+  bool _initializing = false;
+  bool _recoveringPassword = false;
+  bool get recoveringPassword => _recoveringPassword && ownerId != null;
+  SessionStatus get status => _initializing
+      ? SessionStatus.initializing
+      : recoveringPassword
+      ? SessionStatus.passwordRecovery
+      : ownerId != null
+      ? SessionStatus.authenticated
+      : SessionStatus.unauthenticated;
   String? error;
-  String? get ownerId => _session?.user.id;
-  String? get accessToken => _session?.accessToken;
+  String? get ownerId =>
+      _session?.isExpired == false ? _session?.user.id : null;
+  String? get accessToken => ownerId == null ? null : _session?.accessToken;
+
+  /// Supabase owns persistence/refresh; never admit its expired startup snapshot.
+  Future<void> initialize() async {
+    try {
+      if (_session?.isExpired == true) {
+        await _required.auth.refreshSession().timeout(
+          const Duration(seconds: 20),
+        );
+      }
+    } catch (exception, stack) {
+      logAuthError(exception, stack);
+      error = authErrorMessage(exception);
+    } finally {
+      _initializing = false;
+      notifyListeners();
+    }
+  }
+
+  void _scheduleExpiry() {
+    _expiryTimer?.cancel();
+    final expiresAt = _session?.expiresAt;
+    if (expiresAt == null || _session!.isExpired) return;
+    // Match the installed SDK's ten-second safety margin.
+    final delay = DateTime.fromMillisecondsSinceEpoch(
+      expiresAt * 1000,
+    ).subtract(const Duration(seconds: 10)).difference(DateTime.now());
+    _expiryTimer = Timer(delay, notifyListeners);
+  }
+
   Future<void> refreshAccessToken() async {
     final owner = ownerId;
     if (owner == null) throw StateError('Inicia sesión.');
@@ -49,7 +106,7 @@ class SessionRepository extends ChangeNotifier {
   static const redirectUrl = 'io.supabase.foodiefy://login-callback';
 
   SupabaseClient get _required =>
-      client ?? (throw StateError('Cloud no está configurado.'));
+      client ?? (throw StateError('El acceso no está configurado.'));
   Future<void> signIn(String email, String password) async {
     final response = await _required.auth.signInWithPassword(
       email: email.trim(),
@@ -59,6 +116,7 @@ class SessionRepository extends ChangeNotifier {
       throw StateError('No hay una sesión confirmada.');
     }
     _session = response.session;
+    _scheduleExpiry();
     error = null;
     notifyListeners();
   }
@@ -70,7 +128,9 @@ class SessionRepository extends ChangeNotifier {
       password: password,
       emailRedirectTo: redirectUrl,
     );
+    _startResendCooldown();
     _session = response.session;
+    _scheduleExpiry();
     notifyListeners();
     return response.session != null;
   }
@@ -79,12 +139,45 @@ class SessionRepository extends ChangeNotifier {
     email.trim(),
     redirectTo: redirectUrl,
   );
+  DateTime? _resendAvailableAt;
+  bool _resending = false;
+  int get resendCooldownSeconds {
+    final remaining =
+        _resendAvailableAt?.difference(DateTime.now()).inMilliseconds ?? 0;
+    return remaining <= 0 ? 0 : (remaining / 1000).ceil();
+  }
+
+  void _startResendCooldown() {
+    _resendAvailableAt = DateTime.now().add(const Duration(seconds: 60));
+  }
+
+  Future<void> resendConfirmation(String email) async {
+    if (_resending || resendCooldownSeconds > 0) {
+      throw const AuthException('Email rate limit exceeded', statusCode: '429');
+    }
+    _resending = true;
+    _startResendCooldown();
+    try {
+      await _required.auth.resend(
+        type: OtpType.signup,
+        email: email.trim(),
+        emailRedirectTo: redirectUrl,
+      );
+    } finally {
+      _resending = false;
+    }
+  }
+
   Future<void> updatePassword(String password) async {
     if (ownerId == null || !recoveringPassword) {
       throw StateError('Abre primero el enlace de recuperación.');
     }
+    final owner = ownerId;
     await _required.auth.updateUser(UserAttributes(password: password));
-    recoveringPassword = false;
+    if (ownerId != owner || !recoveringPassword) {
+      throw StateError('La sesión cambió.');
+    }
+    _recoveringPassword = false;
     notifyListeners();
   }
 
@@ -93,13 +186,14 @@ class SessionRepository extends ChangeNotifier {
     await beforeSignOut?.call();
     // Hide private data immediately, even if remote revocation fails.
     _session = null;
-    recoveringPassword = false;
+    _recoveringPassword = false;
+    _expiryTimer?.cancel();
     notifyListeners();
     try {
       await _required.auth.signOut(scope: SignOutScope.local);
-    } catch (_) {
-      error =
-          'La sesión se ocultó, pero no se pudo completar el cierre. Reintenta con conexión.';
+    } catch (exception, stack) {
+      logAuthError(exception, stack);
+      error = authErrorMessage(exception);
       notifyListeners();
       rethrow;
     }
@@ -123,6 +217,7 @@ class SessionRepository extends ChangeNotifier {
       (await SharedPreferences.getInstance()).getString('pending_import_v1');
   @override
   void dispose() {
+    _expiryTimer?.cancel();
     _subscription?.cancel();
     super.dispose();
   }

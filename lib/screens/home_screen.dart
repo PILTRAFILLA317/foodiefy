@@ -1,7 +1,6 @@
 import 'shopping_screen.dart';
 import '../repositories/app_repositories.dart';
 import '../repositories/library_repository.dart';
-import 'auth/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:foodiefy/models/recipe.dart';
 import 'package:foodiefy/models/collection.dart';
@@ -279,20 +278,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _showAddRecipeOptions() async {
     if (!(AppRepositories.library?.canWrite ?? false)) {
-      if (AppRepositories.session.configured) {
-        await Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'El rescate local es de solo lectura. Configura cloud e inicia sesión para guardar.',
-            ),
-          ),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se puede guardar en este momento.')),
+      );
       return;
     }
     final result = await showModalBottomSheet<String>(

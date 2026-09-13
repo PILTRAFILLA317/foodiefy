@@ -29,6 +29,7 @@ class AppRepositories {
     }
     session.dispose();
     session = SessionRepository(CloudRuntime.client);
+    await session.initialize();
     shares = ShareInbox(await SharedPreferences.getInstance(), session);
     await shares!.initialize();
     if (CloudRuntime.client != null) {

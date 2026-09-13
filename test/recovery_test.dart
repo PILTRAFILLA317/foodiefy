@@ -41,7 +41,7 @@ Recipe legacyRecipe(String id) => Recipe(
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
-    AppConfig.current = AppConfig.fromValues({});
+    AppConfig.current = AppConfig.fromValues({'LOCAL_RESCUE': 'true'});
   });
 
   for (final value in [
@@ -129,7 +129,11 @@ void main() {
     },
   );
   test('config enforces public keys and HTTPS outside local', () {
-    expect(AppConfig.fromValues({}).rescueMode, isTrue);
+    expect(
+      () => AppConfig.fromValues({}),
+      throwsA(isA<ConfigurationException>()),
+    );
+    expect(AppConfig.fromValues({'LOCAL_RESCUE': 'true'}).rescueMode, isTrue);
     for (final values in [
       {'APP_ENV': 'typo'},
       {'LOCAL_RESCUE': 'typo'},
@@ -155,17 +159,18 @@ void main() {
     for (final host in ['127.0.0.1', '10.0.2.2', '192.168.1.10']) {
       expect(
         AppConfig.fromValues({
+          'LOCAL_RESCUE': 'true',
           'API_BASE_URL': 'http://$host:8000',
         }).apiBaseUrl!.host,
         host,
       );
     }
   });
-  testWidgets('actual main opens without dotenv or cloud', (tester) async {
+  testWidgets('actual main fails closed without configuration', (tester) async {
     await tester.runAsync(app.main);
     await tester.pumpAndSettle();
-    expect(find.text('Foodiefy'), findsOneWidget);
-    expect(tester.widget<Banner>(find.byType(Banner)).message, 'RESCATE LOCAL');
+    expect(find.text('Configuración de Foodiefy'), findsOneWidget);
+    expect(find.byType(Banner), findsNothing);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(
       const MaterialApp(home: UserScreen(savedRecipes: 0)),

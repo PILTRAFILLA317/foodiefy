@@ -123,7 +123,9 @@ void main() {
   test('rescue and missing auth never call network', () async {
     for (final rescue in [true, false]) {
       final service = ImportRecipeService(
-        config: rescue ? AppConfig.fromValues({}) : config(),
+        config: rescue
+            ? AppConfig.fromValues({'LOCAL_RESCUE': 'true'})
+            : config(),
         accessToken: () => null,
         client: MockClient((_) => throw StateError('no network')),
       );

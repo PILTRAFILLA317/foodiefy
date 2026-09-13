@@ -24,4 +24,14 @@ void main() {
   test('staging public https configuration is accepted', () {
     expect(AppConfig.fromValues(base()).environment, AppEnvironment.staging);
   });
+  test('Supabase auth requires neither API URL nor a rescue override', () {
+    final values = base()
+      ..remove('API_BASE_URL')
+      ..remove('LOCAL_RESCUE');
+    final config = AppConfig.fromValues(values);
+    expect(config.apiBaseUrl, isNull);
+    expect(config.rescueMode, isFalse);
+    expect(config.supabaseUrl, isNotNull);
+    expect(config.supabasePublicKey, isNotNull);
+  });
 }

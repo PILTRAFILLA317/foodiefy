@@ -23,13 +23,16 @@ class AppConfig {
   final Uri? supabaseUrl;
   final String? supabasePublicKey;
 
-  static AppConfig current = AppConfig.fromValues(const {});
+  static AppConfig current = const AppConfig._(
+    environment: AppEnvironment.local,
+    rescueMode: false,
+  );
 
   factory AppConfig.fromEnvironment() => AppConfig.fromValues(const {
     'APP_ENV': String.fromEnvironment('APP_ENV', defaultValue: 'local'),
     'LOCAL_RESCUE': String.fromEnvironment(
       'LOCAL_RESCUE',
-      defaultValue: 'true',
+      defaultValue: 'false',
     ),
     'API_BASE_URL': String.fromEnvironment('API_BASE_URL'),
     'SUPABASE_URL': String.fromEnvironment('SUPABASE_URL'),
@@ -52,7 +55,7 @@ class AppConfig {
         'APP_ENV debe ser local, staging o production.',
       );
     }
-    final rescue = values['LOCAL_RESCUE'] ?? 'true';
+    final rescue = values['LOCAL_RESCUE'] ?? 'false';
     if (rescue != 'true' && rescue != 'false') {
       throw const ConfigurationException('LOCAL_RESCUE debe ser true o false.');
     }
@@ -93,10 +96,9 @@ class AppConfig {
         'Supabase requiere una clave pública publishable o anon; nunca un secreto de servidor.',
       );
     }
-    if (rescue == 'false' &&
-        (api == null || supabase == null || key == null || key.isEmpty)) {
+    if (rescue == 'false' && (supabase == null || key == null || key.isEmpty)) {
       throw const ConfigurationException(
-        'Faltan API_BASE_URL, SUPABASE_URL o la clave pública. Usa LOCAL_RESCUE=true en local.',
+        'Falta la configuración de acceso de Foodiefy. Revisa la configuración de la aplicación.',
       );
     }
     return AppConfig._(
